@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:minecraft_on_demand/server_state_model.dart';
+import 'package:provider/provider.dart';
 
 class MinecraftStopStartButton extends StatefulWidget {
   const MinecraftStopStartButton({Key? key}) : super(key: key);
@@ -9,10 +10,25 @@ class MinecraftStopStartButton extends StatefulWidget {
       _MinecraftStopStartButtonState();
 }
 
-class _MinecraftStopStartButtonState extends State<MinecraftStopStartButton> {
+class _MinecraftStopStartButtonState extends State<MinecraftStopStartButton>
+    with ServerStateListener {
   ServerState _serverState = ServerState.none;
   String _buttonText = "Getting server status...";
   bool _buttonIsClickable = true;
+
+  @override
+  void initState() {
+    super.initState();
+    final model = context.read<ServerStateModel>();
+    model.addListener(this);
+  }
+
+  @override
+  void dispose() {
+    final model = context.read<ServerStateModel>();
+    model.removeListener(this);
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -60,5 +76,10 @@ class _MinecraftStopStartButtonState extends State<MinecraftStopStartButton> {
         break;
       default:
     }
+  }
+
+  @override
+  void onServerStateChange(ServerState serverState) {
+    print('State is now $serverState');
   }
 }

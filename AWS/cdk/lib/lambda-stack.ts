@@ -1,5 +1,6 @@
 import { Stack, StackProps } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
+import * as iam from 'aws-cdk-lib/aws-iam';
 import * as route53 from 'aws-cdk-lib/aws-route53';
 import * as targets from 'aws-cdk-lib/aws-route53-targets';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
@@ -11,13 +12,17 @@ export class LambdaStack extends Stack {
   constructor(scope: Construct, id: string, props: StackProps) {
     super(scope, id, props);
 
-    // Create the instance state get and post lambdas
+    // Create the instance state get lambda
     const ec2InstanceStateGetLambda = new lambda.Function(this, "ec2InstanceStateGetLambda", {
       runtime: lambda.Runtime.NODEJS_14_X,
       code: lambda.Code.fromAsset("../lambda-code/dist/lambda.zip"),
       handler: "ec2_instance_state_get.lambdaHandler"
     });
+    // Allow it read-only access to EC2.
+    const ec2ReadOnlyPolicy = iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonEC2ReadOnlyAccess");
+    ec2InstanceStateGetLambda.role?.addManagedPolicy(ec2ReadOnlyPolicy);
 
+    // Create the instance state post lambda
     const ec2InstanceStatePostLambda = new lambda.Function(this, "ec2InstanceStatePostLambda", {
       runtime: lambda.Runtime.NODEJS_14_X,
       code: lambda.Code.fromAsset("../lambda-code/dist/lambda.zip"),
