@@ -14,18 +14,19 @@ class _MinecraftStopStartButtonState extends State<MinecraftStopStartButton>
     with ServerStateListener {
   String _buttonText = "Getting server status...";
   bool _buttonIsClickable = true;
+  ServerState _serverState = ServerState.none;
+  ServerStateModel? _model;
 
   @override
   void initState() {
     super.initState();
-    final model = context.read<ServerStateModel>();
-    model.addListener(this);
+    _model = context.read<ServerStateModel>();
+    _model?.addListener(this);
   }
 
   @override
   void dispose() {
-    final model = context.read<ServerStateModel>();
-    model.removeListener(this);
+    _model?.removeListener(this);
     super.dispose();
   }
 
@@ -46,10 +47,21 @@ class _MinecraftStopStartButtonState extends State<MinecraftStopStartButton>
     );
   }
 
-  void onPressed() {}
+  void onPressed() async {
+    switch (_serverState) {
+      case ServerState.running:
+        await _model?.stopServer();
+        break;
+      case ServerState.stopped:
+        await _model?.startServer();
+        break;
+      default:
+    }
+  }
 
   @override
   void onServerStateChange(ServerState serverState) {
+    _serverState = serverState;
     switch (serverState) {
       case ServerState.pending:
         setState(() {

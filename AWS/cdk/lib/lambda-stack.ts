@@ -28,6 +28,9 @@ export class LambdaStack extends Stack {
       code: lambda.Code.fromAsset("../lambda-code/dist/lambda.zip"),
       handler: "ec2_instance_state_post.lambdaHandler"
     });
+    // Allow it read-write access to EC2.
+    const ec2ReadWritePolicy = iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonEC2FullAccess");
+    ec2InstanceStatePostLambda.role?.addManagedPolicy(ec2ReadWritePolicy);
 
     const customDomainName = getEnv('CUSTOM_DOMAIN_NAME', false)!;
     const r53ZoneId = getEnv('R53_ZONE_ID', false)!;

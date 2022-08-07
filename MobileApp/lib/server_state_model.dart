@@ -9,14 +9,6 @@ abstract class ServerStateListener {
   void onServerStateChange(ServerState serverState);
 }
 
-// TODO: ec2_instance_state_get: undefined
-// ec2_instance_state_get: {
-//    KeyName: 'minecraft-ubuntu',
-//    LaunchTime: 2022-08-07T13:57:48.000Z,
-//    State: { Code: 64, Name: 'stopping' }
-// stopped, stopping, pending
-// }
-
 class ServerStateModel {
   List<ServerStateListener> _listeners = [];
   final _pollPeriod = new Duration(seconds: 5);
@@ -75,5 +67,34 @@ class ServerStateModel {
 
   void _stopPollingForStatus() {
     _timer?.cancel();
+  }
+
+  Future<void> stopServer() async {
+    _postMessage("stop");
+  }
+
+  Future<void> startServer() async {
+    _postMessage("start");
+  }
+
+  Future<void> _postMessage(String action) async {
+    try {
+      final uri = Uri.parse(Env.getServerStatusUri());
+
+      final data = {'action': action};
+      final body = json.encode(data);
+
+      var response = await http.post(uri,
+          headers: {"Content-Type": "application/json"}, body: body);
+
+      print('response=$response');
+      if (response.statusCode == 200) {
+        print('response=${response.body}');
+      } else {
+        print("State is unknown");
+      }
+    } catch (error) {
+      print("Error: $error");
+    }
   }
 }
