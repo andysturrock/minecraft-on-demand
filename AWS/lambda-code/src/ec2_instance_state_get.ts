@@ -1,9 +1,10 @@
+import util from 'util';
 import {EC2, InstanceState} from '@aws-sdk/client-ec2';
 
 async function lambdaHandler(event: any): Promise<any> {
   try {
     // TODO pass in region
-    const client = new EC2({region: 'eu-west-1'});
+    const client = new EC2({region: 'eu-west-2'});
     var params = {
       DryRun: false
     };
@@ -11,27 +12,26 @@ async function lambdaHandler(event: any): Promise<any> {
     const data = await client.describeInstances(params);
 
     type ReturnData = {
-      KeyName: string;
+      InstanceId: string;
       LaunchTime: Date | undefined;
       State: InstanceState | undefined;
     } | undefined;
-    let returnData: ReturnData;
-    // TODO pass in instance name.
-    // For now just look for an instance called "minecraft-ubuntu"
-    data.Reservations?.every((reservation) => {
-      reservation?.Instances?.every((instance) => {
-        if(instance.KeyName == "minecraft-ubuntu") {
+    let returnData: ReturnData = undefined;
+    // TODO pass in instance id.
+    // For now just look for an instance id i-03a206101969e1f87
+    data.Reservations?.find((reservation) => {
+      reservation?.Instances?.find((instance) => {
+        if(instance.InstanceId === "i-03a206101969e1f87") {
           returnData = {
-            KeyName: instance.KeyName,
+            InstanceId: instance.InstanceId,
             LaunchTime: instance.LaunchTime,
             State: instance.State
           };
-          return false;
+          return true;
         }
-      })
-      if(returnData) {
         return false;
-      }
+      })
+      return returnData !== undefined;
     });
 
     const httpReturn = returnData === undefined ?
@@ -43,6 +43,7 @@ async function lambdaHandler(event: any): Promise<any> {
       statusCode: 200,
       body: JSON.stringify(returnData)
     };
+    console.log(`Returning ${util.inspect(httpReturn)}`);
     return httpReturn;
   }
   catch (err) {

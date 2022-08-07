@@ -1,5 +1,5 @@
-var util = require('util');
-import {EC2, InstanceState} from '@aws-sdk/client-ec2';
+import util from 'util';
+import {EC2} from '@aws-sdk/client-ec2';
 
 async function lambdaHandler(event: any): Promise<any> {
   try {
@@ -7,9 +7,10 @@ async function lambdaHandler(event: any): Promise<any> {
     const body = JSON.parse(event.body);
     const action = body?.action;
 
-    const client = new EC2({region: 'eu-west-1'});
+    const client = new EC2({region: 'eu-west-2'});
     var params = {
-      InstanceIds: ['i-0d42cd12864c72b14'],
+      // TODO - pass in instance id
+      InstanceIds: ['i-03a206101969e1f87'],
       DryRun: false
     };
 
