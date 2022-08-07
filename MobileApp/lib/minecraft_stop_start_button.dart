@@ -12,7 +12,6 @@ class MinecraftStopStartButton extends StatefulWidget {
 
 class _MinecraftStopStartButtonState extends State<MinecraftStopStartButton>
     with ServerStateListener {
-  ServerState _serverState = ServerState.none;
   String _buttonText = "Getting server status...";
   bool _buttonIsClickable = true;
 
@@ -47,18 +46,14 @@ class _MinecraftStopStartButtonState extends State<MinecraftStopStartButton>
     );
   }
 
-  void onPressed() {
-    _serverState = ServerState.starting;
-    switch (_serverState) {
-      case ServerState.none:
+  void onPressed() {}
+
+  @override
+  void onServerStateChange(ServerState serverState) {
+    switch (serverState) {
+      case ServerState.pending:
         setState(() {
-          _buttonText = "Getting server status...";
-          _buttonIsClickable = false;
-        });
-        break;
-      case ServerState.starting:
-        setState(() {
-          _buttonText = "Server is starting...";
+          _buttonText = "Server is starting.  Please wait...";
           _buttonIsClickable = false;
         });
         break;
@@ -70,16 +65,22 @@ class _MinecraftStopStartButtonState extends State<MinecraftStopStartButton>
         break;
       case ServerState.stopping:
         setState(() {
+          _buttonText = "Server is stopping.  Please wait...";
+          _buttonIsClickable = false;
+        });
+        break;
+      case ServerState.stopped:
+        setState(() {
           _buttonText = "Server is stopped.  Press to start.";
           _buttonIsClickable = true;
         });
         break;
+      case ServerState.none:
       default:
+        setState(() {
+          _buttonText = "Getting server status...";
+          _buttonIsClickable = false;
+        });
     }
-  }
-
-  @override
-  void onServerStateChange(ServerState serverState) {
-    print('State is now $serverState');
   }
 }

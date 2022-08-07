@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:minecraft_on_demand/utils/env.dart';
 
-enum ServerState { none, starting, running, stopping, stopped }
+enum ServerState { none, pending, running, stopping, stopped }
 
 abstract class ServerStateListener {
   void onServerStateChange(ServerState serverState);
@@ -14,6 +14,7 @@ abstract class ServerStateListener {
 //    KeyName: 'minecraft-ubuntu',
 //    LaunchTime: 2022-08-07T13:57:48.000Z,
 //    State: { Code: 64, Name: 'stopping' }
+// stopped, stopping, pending
 // }
 
 class ServerStateModel {
@@ -43,20 +44,28 @@ class ServerStateModel {
   }
 
   void _getServerStatus() async {
-    var uri = Env.getServerStatusUri();
-    final response = await http.get(Uri.parse(uri));
+    ServerState serverState = ServerState.none;
 
-    print('response=$response');
-    if (response.statusCode == 200) {
-      print('response=${response.body}');
-      final json = jsonDecode(response.body);
-      final state = json["State"];
-      if (state != null) {
-        final name = state["Name"];
-        print("state is: $name");
-      } else {
-        print("State is unknown");
+    try {
+      var uri = Env.getServerStatusUri();
+      final response = await http.get(Uri.parse(uri));
+
+      print('response=$response');
+      if (response.statusCode == 200) {
+        print('response=${response.body}');
+        final json = jsonDecode(response.body);
+        final state = json["State"];
+        if (state != null) {
+          final name = state["Name"];
+          print("state is: $name");
+          serverState = ServerState.values.byName(name);
+          print("state is: $serverState");
+        } else {
+          print("State is unknown");
+        }
       }
+    } finally {
+      _notifyListeners(serverState);
     }
   }
 
