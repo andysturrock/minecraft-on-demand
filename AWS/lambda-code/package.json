@@ -32,6 +32,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-ec2": "^3.142.0",
+    "@aws-sdk/client-secrets-manager": "^3.142.0",
     "dotenv": "^8.2.0"
   }
 }

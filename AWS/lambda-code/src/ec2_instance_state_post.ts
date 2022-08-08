@@ -6,11 +6,12 @@ async function lambdaHandler(event: any): Promise<any> {
     console.log(`event: ${util.inspect(event)}`);
     const body = JSON.parse(event.body);
     const action = body?.action;
+    const instanceId = body?.InstanceId;
 
+    // TODO pass in region
     const client = new EC2({region: 'eu-west-2'});
     var params = {
-      // TODO - pass in instance id
-      InstanceIds: ['i-03a206101969e1f87'],
+      InstanceIds: [instanceId],
       DryRun: false
     };
 

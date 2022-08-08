@@ -13,6 +13,7 @@ class ServerStateModel {
   List<ServerStateListener> _listeners = [];
   final _pollPeriod = new Duration(seconds: 5);
   Timer? _timer;
+  String? _instanceId;
 
   void addListener(ServerStateListener serverStateListener) {
     _listeners.add(serverStateListener);
@@ -46,6 +47,7 @@ class ServerStateModel {
       if (response.statusCode == 200) {
         print('response=${response.body}');
         final json = jsonDecode(response.body);
+        _instanceId = json["InstanceId"];
         final state = json["State"];
         if (state != null) {
           final name = state["Name"];
@@ -81,7 +83,7 @@ class ServerStateModel {
     try {
       final uri = Uri.parse(Env.getServerStatusUri());
 
-      final data = {'action': action};
+      final data = {'action': action, 'InstanceId': _instanceId};
       final body = json.encode(data);
 
       var response = await http.post(uri,

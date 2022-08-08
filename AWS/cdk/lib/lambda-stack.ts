@@ -21,6 +21,9 @@ export class LambdaStack extends Stack {
     // Allow it read-only access to EC2.
     const ec2ReadOnlyPolicy = iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonEC2ReadOnlyAccess");
     ec2InstanceStateGetLambda.role?.addManagedPolicy(ec2ReadOnlyPolicy);
+    // And SecretsManager (there is no read-only policy for this)
+    const secretsManagerReadPolicy = iam.ManagedPolicy.fromAwsManagedPolicyName("SecretsManagerReadWrite");
+    ec2InstanceStateGetLambda.role?.addManagedPolicy(secretsManagerReadPolicy);
 
     // Create the instance state post lambda
     const ec2InstanceStatePostLambda = new lambda.Function(this, "ec2InstanceStatePostLambda", {
