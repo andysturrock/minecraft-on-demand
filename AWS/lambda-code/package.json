@@ -23,8 +23,10 @@
   },
   "homepage": "https://github.com/andysturrock/minecraft-on-demand#readme",
   "devDependencies": {
+    "@types/aws-lambda": "^8.10.101",
     "@types/node": "^18.6.4",
     "adm-zip": "^0.5.9",
+    "aws-lambda": "^1.0.7",
     "glob-promise": "^4.2.2",
     "ts-node": "^10.9.1",
     "tslint": "^6.1.3",
@@ -32,6 +34,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-ec2": "^3.142.0",
+    "@aws-sdk/client-eventbridge": "^3.142.0",
     "@aws-sdk/client-secrets-manager": "^3.142.0",
     "dotenv": "^8.2.0"
   }

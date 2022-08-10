@@ -1,4 +1,4 @@
-import { Stack, StackProps } from 'aws-cdk-lib';
+import { SecretValue, Stack, StackProps } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as route53 from 'aws-cdk-lib/aws-route53';
@@ -7,10 +7,14 @@ import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as acm from 'aws-cdk-lib/aws-certificatemanager';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import { getEnv } from './common';
+import { Effect } from 'aws-cdk-lib/aws-iam';
 
 export class LambdaStack extends Stack {
   constructor(scope: Construct, id: string, props: StackProps) {
     super(scope, id, props);
+
+    const region = Stack.of(this).region;
+    const account = Stack.of(this).account;
 
     // Create the instance state get lambda
     const ec2InstanceStateGetLambda = new lambda.Function(this, "ec2InstanceStateGetLambda", {
@@ -34,6 +38,12 @@ export class LambdaStack extends Stack {
     // Allow it read-write access to EC2.
     const ec2ReadWritePolicy = iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonEC2FullAccess");
     ec2InstanceStatePostLambda.role?.addManagedPolicy(ec2ReadWritePolicy);
+    // And EventBridge
+    const eventBridgeFullAccessPolicy = iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonEventBridgeFullAccess");
+    ec2InstanceStatePostLambda.role?.addManagedPolicy(eventBridgeFullAccessPolicy);
+    // And allow EventBridge to call the lambda
+    const eventBridgePrincipal = new iam.ServicePrincipal('events.amazonaws.com');
+    ec2InstanceStatePostLambda.grantInvoke(eventBridgePrincipal);
 
     const customDomainName = getEnv('CUSTOM_DOMAIN_NAME', false)!;
     const r53ZoneId = getEnv('R53_ZONE_ID', false)!;
