@@ -63,13 +63,14 @@ async function startServer(instanceId: string,
     ec2Client: EC2) {
   console.log("Creating EventBridge rule to stop server...");
   const now = new Date();
-  const hours = now.getUTCHours();
-  const minutes = now.getUTCMinutes() + 1;
-  const day = now.getUTCDate();
-  const month = now.getUTCMonth() + 1; // Date uses 0-11, cron uses 1-12
-  const year = now.getUTCFullYear();
-  // TODO remove debug cron above
-  const cronPattern = `cron(${minutes} ${hours} ${day} ${month} ? ${year})`;
+  let hours = now.getUTCHours() + 2;
+  if(hours >= 24) {
+    hours -= 24;
+  }
+  const minutes = now.getUTCMinutes();
+  // Only need to worry about the minutes and hours in the pattern.
+  // The rule will be deleted before "tomorrow" anyway.
+  const cronPattern = `cron(${minutes} ${hours} * * ? *)`;
   const putRuleParams: PutRuleCommandInput = {
     Name: `Turn_off_${instanceId}`,
     ScheduleExpression: cronPattern
@@ -111,6 +112,14 @@ async function stopServer(instanceId: string,
     deleteStopRule: boolean,
     eventBridgeClient: EventBridge,
     ec2Client: EC2) {
+  console.log("Stopping server...");
+  const stopInstancesCommandInput: StopInstancesCommandInput = {
+    InstanceIds: [instanceId],
+  };
+  console.debug(`stopInstancesCommandInput = ${JSON.stringify(stopInstancesCommandInput)}`);
+  const stopInstancesResult = await ec2Client.stopInstances(stopInstancesCommandInput);
+  console.debug(`stopInstancesResult = ${JSON.stringify(stopInstancesResult)}`);
+
   if(deleteStopRule) {
     console.log(`Deleting EventBridge stop server rule...`);
     const removeTargetsCommandInput: RemoveTargetsCommandInput = {
@@ -128,12 +137,4 @@ async function stopServer(instanceId: string,
     const deleteRuleResult = await eventBridgeClient.deleteRule(deleteRuleCommandInput);
     console.debug(`deleteRuleResult = ${JSON.stringify(deleteRuleResult)}`);
   }
-
-  console.log("Stopping server...");
-  const stopInstancesCommandInput: StopInstancesCommandInput = {
-    InstanceIds: [instanceId],
-  };
-  console.debug(`stopInstancesCommandInput = ${JSON.stringify(stopInstancesCommandInput)}`);
-  const stopInstancesResult = await ec2Client.stopInstances(stopInstancesCommandInput);
-  console.debug(`stopInstancesResult = ${JSON.stringify(stopInstancesResult)}`);
 }

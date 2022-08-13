@@ -8,9 +8,9 @@ async function lambdaHandler(event: any): Promise<any> {
     const region = 'eu-west-2';
 
     type ReturnData = {
-      InstanceId?: string;
-      LaunchTime?: Date;
-      State?: InstanceState;
+      instanceId?: string;
+      launchTime?: Date;
+      state?: InstanceState;
     } | undefined;
     let returnData: ReturnData = undefined;
 
@@ -36,9 +36,9 @@ async function lambdaHandler(event: any): Promise<any> {
         reservation?.Instances?.find((instance) => {
           if(instance.InstanceId === ec2InstanceId) {
             returnData = {
-              InstanceId: instance.InstanceId,
-              LaunchTime: instance.LaunchTime,
-              State: instance.State
+              instanceId: instance.InstanceId,
+              launchTime: instance.LaunchTime,
+              state: instance.State
             };
             return true;
           }
