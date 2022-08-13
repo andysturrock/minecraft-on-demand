@@ -6,6 +6,7 @@ import * as targets from 'aws-cdk-lib/aws-route53-targets';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as acm from 'aws-cdk-lib/aws-certificatemanager';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
+import * as logs from 'aws-cdk-lib/aws-logs';
 import { getEnv } from './common';
 import { Effect } from 'aws-cdk-lib/aws-iam';
 
@@ -20,7 +21,8 @@ export class LambdaStack extends Stack {
     const ec2InstanceStateGetLambda = new lambda.Function(this, "ec2InstanceStateGetLambda", {
       runtime: lambda.Runtime.NODEJS_14_X,
       code: lambda.Code.fromAsset("../lambda-code/dist/lambda.zip"),
-      handler: "ec2_instance_state_get.lambdaHandler"
+      handler: "ec2_instance_state_get.lambdaHandler",
+      logRetention: logs.RetentionDays.THREE_DAYS
     });
     // Allow it read-only access to EC2.
     const ec2ReadOnlyPolicy = iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonEC2ReadOnlyAccess");
@@ -33,7 +35,8 @@ export class LambdaStack extends Stack {
     const ec2InstanceStatePostLambda = new lambda.Function(this, "ec2InstanceStatePostLambda", {
       runtime: lambda.Runtime.NODEJS_14_X,
       code: lambda.Code.fromAsset("../lambda-code/dist/lambda.zip"),
-      handler: "ec2_instance_state_post.lambdaHandler"
+      handler: "ec2_instance_state_post.lambdaHandler",
+      logRetention: logs.RetentionDays.THREE_DAYS
     });
     // Allow it read-write access to EC2.
     const ec2ReadWritePolicy = iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonEC2FullAccess");
