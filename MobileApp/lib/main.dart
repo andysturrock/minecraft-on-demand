@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:minecraft_on_demand/extend_time_button.dart';
 import 'package:minecraft_on_demand/minecraft_stop_start_button.dart';
 import 'package:minecraft_on_demand/server_state_model.dart';
 import 'package:provider/provider.dart';
@@ -20,7 +21,12 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: const MinecraftStopStartButton(),
+      home: Column(children: const [
+        Expanded(child: MinecraftStopStartButton()),
+        Expanded(
+          child: ExtendTimeButton(),
+        )
+      ]),
     );
   }
 }
