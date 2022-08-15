@@ -1,8 +1,9 @@
 import util from 'util';
 import {EC2, InstanceState} from '@aws-sdk/client-ec2';
 import {SecretsManager} from '@aws-sdk/client-secrets-manager';
+import {APIGatewayProxyEvent, APIGatewayProxyResult, Context} from 'aws-lambda';
 
-async function lambdaHandler(_event: any): Promise<any> {
+async function lambdaHandler(event: APIGatewayProxyEvent, context: Context): Promise<APIGatewayProxyResult> {
   try {
     // TODO pass in region
     const region = 'eu-west-2';
