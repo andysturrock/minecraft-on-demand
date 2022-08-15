@@ -1,31 +1,34 @@
 import util from 'util';
-import { Context, APIGatewayEvent } from 'aws-lambda';
-import { EC2, StartInstancesCommandInput, StartVpcEndpointServicePrivateDnsVerificationCommand, StopInstancesCommandInput } from '@aws-sdk/client-ec2';
-import { DeleteRuleCommandInput, EventBridge, PutRuleCommandInput, PutTargetsCommandInput, RemoveTargetsCommandInput, Target } from "@aws-sdk/client-eventbridge";
+import {Context, APIGatewayProxyEvent, APIGatewayProxyResult} from 'aws-lambda';
+import {EC2, StartInstancesCommandInput, StopInstancesCommandInput} from '@aws-sdk/client-ec2';
+import {DeleteRuleCommandInput, EventBridge, PutRuleCommandInput, PutTargetsCommandInput, RemoveTargetsCommandInput, Target} from '@aws-sdk/client-eventbridge';
 
-async function lambdaHandler(event: APIGatewayEvent, context: Context): Promise<any> {
+async function lambdaHandler(event: APIGatewayProxyEvent, context: Context): Promise<APIGatewayProxyResult> {
   try {
     console.debug(`event: ${util.inspect(event)}`);
     console.debug(`context: ${util.inspect(context)}`);
-    const body = JSON.parse(event.body!);
-    const action = body.action;
-    if(action === undefined) {
-      throw new Error("Missing action field in body");
+    if(event.body == null) {
+      throw new Error('Missing event.body');
     }
-    const instanceId:string = body?.instanceId;
+    const body = JSON.parse(event.body);
+    const action: string = body.action;
+    if(action === undefined) {
+      throw new Error('Missing action field in body');
+    }
+    const instanceId: string = body?.instanceId;
     if(instanceId === undefined) {
-      throw new Error("Missing instanceId field in body");
+      throw new Error('Missing instanceId field in body');
     }
     const invokedFunctionArn = context.invokedFunctionArn;
-    
+
     // TODO pass in region
     const region = {region: 'eu-west-2'};
     const ec2Client = new EC2(region);
     const eventBridgeClient = new EventBridge(region);
-    
-    if(action === "start") {
+
+    if(action === 'start') {
       await startServer(instanceId, invokedFunctionArn, eventBridgeClient, ec2Client);
-    } else if(action === "stop") {
+    } else if(action === 'stop') {
       const deleteStopRule = body.deleteStopRule;
       await stopServer(instanceId, deleteStopRule, eventBridgeClient, ec2Client);
     } else {
@@ -33,14 +36,13 @@ async function lambdaHandler(event: APIGatewayEvent, context: Context): Promise<
     }
     return {
       statusCode: 200,
-      body: `${JSON.stringify({ "Status": `OK` })}`
-    }
-  }
-  catch (err) {
-    let errorText = "Unknown error";
+      body: `${JSON.stringify({Status: 'OK'})}`
+    };
+  } catch (err) {
+    let errorText = 'Unknown error';
     if(err instanceof Error) {
-      console.error(`Caught Error exception: ${err.stack}`);
-      const error = err as Error;
+      console.error(`Caught Error exception: ${err.stack as string}`);
+      const error = err;
       errorText = error.message;
     } else {
       console.error(`Caught exception: ${JSON.stringify(err)}`);
@@ -50,18 +52,17 @@ async function lambdaHandler(event: APIGatewayEvent, context: Context): Promise<
       body: JSON.stringify({
         error: errorText
       })
-    }
+    };
   }
 }
 
-export { lambdaHandler };
-
+export {lambdaHandler};
 
 async function startServer(instanceId: string,
-    invokedFunctionArn: string,
-    eventBridgeClient: EventBridge,
-    ec2Client: EC2) {
-  console.log("Creating EventBridge rule to stop server...");
+  invokedFunctionArn: string,
+  eventBridgeClient: EventBridge,
+  ec2Client: EC2): Promise<void> {
+  console.log('Creating EventBridge rule to stop server...');
   const now = new Date();
   let hours = now.getUTCHours() + 2;
   if(hours >= 24) {
@@ -79,14 +80,14 @@ async function startServer(instanceId: string,
   const putRuleResult = await eventBridgeClient.putRule(putRuleParams);
   console.debug(`putRuleResult = ${JSON.stringify(putRuleResult)}`);
   const body = {
-    action: "stop",
-    instanceId: instanceId,
+    action: 'stop',
+    instanceId,
     deleteStopRule: true
   };
   const input = {
     body: JSON.stringify(body)
-  }
-  let target: Target = {
+  };
+  const target: Target = {
     Id: `Turn_off_${instanceId}`,
     Arn: invokedFunctionArn,
     Input: JSON.stringify(input)
@@ -98,10 +99,10 @@ async function startServer(instanceId: string,
   console.debug(`putTargetsCommandInput = ${JSON.stringify(putTargetsCommandInput)}`);
   const putTargetResult = await eventBridgeClient.putTargets(putTargetsCommandInput);
   console.debug(`putTargetResult = ${JSON.stringify(putTargetResult)}`);
-  
-  console.log("Starting server...");
+
+  console.log('Starting server...');
   const startInstancesCommandInput: StartInstancesCommandInput = {
-    InstanceIds: [instanceId],
+    InstanceIds: [instanceId]
   };
   console.debug(`startInstancesCommandInput: ${JSON.stringify(startInstancesCommandInput)}`);
   const startInstancesResult = await ec2Client.startInstances(startInstancesCommandInput);
@@ -109,30 +110,30 @@ async function startServer(instanceId: string,
 }
 
 async function stopServer(instanceId: string,
-    deleteStopRule: boolean,
-    eventBridgeClient: EventBridge,
-    ec2Client: EC2) {
-  console.log("Stopping server...");
+  deleteStopRule: boolean,
+  eventBridgeClient: EventBridge,
+  ec2Client: EC2): Promise<void> {
+  console.log('Stopping server...');
   const stopInstancesCommandInput: StopInstancesCommandInput = {
-    InstanceIds: [instanceId],
+    InstanceIds: [instanceId]
   };
   console.debug(`stopInstancesCommandInput = ${JSON.stringify(stopInstancesCommandInput)}`);
   const stopInstancesResult = await ec2Client.stopInstances(stopInstancesCommandInput);
   console.debug(`stopInstancesResult = ${JSON.stringify(stopInstancesResult)}`);
 
   if(deleteStopRule) {
-    console.log(`Deleting EventBridge stop server rule...`);
+    console.log('Deleting EventBridge stop server rule...');
     const removeTargetsCommandInput: RemoveTargetsCommandInput = {
       Rule: `Turn_off_${instanceId}`,
       Ids: [`Turn_off_${instanceId}`]
     };
     console.debug(`removeTargetsCommandInput = ${JSON.stringify(removeTargetsCommandInput)}`);
-    const removeTargetsResult = await eventBridgeClient.removeTargets(removeTargetsCommandInput)
+    const removeTargetsResult = await eventBridgeClient.removeTargets(removeTargetsCommandInput);
     console.debug(`removeTargetsResult = ${JSON.stringify(removeTargetsResult)}`);
 
     const deleteRuleCommandInput: DeleteRuleCommandInput = {
       Name: `Turn_off_${instanceId}`
-    }
+    };
     console.debug(`deleteRuleCommandInput = ${JSON.stringify(deleteRuleCommandInput)}`);
     const deleteRuleResult = await eventBridgeClient.deleteRule(deleteRuleCommandInput);
     console.debug(`deleteRuleResult = ${JSON.stringify(deleteRuleResult)}`);

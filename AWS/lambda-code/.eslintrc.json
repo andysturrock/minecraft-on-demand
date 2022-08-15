@@ -1,0 +1,35 @@
+{
+  "env": {
+    "browser": true,
+    "es2021": true
+  },
+  "extends": "standard-with-typescript",
+  "overrides": [
+  ],
+  "parserOptions": {
+    "ecmaVersion": "latest",
+    "sourceType": "module",
+    "project": ["./AWS/lambda-code/tsconfig.json"]
+  },
+  "rules": {
+    // note you must disable the base rule as it can report incorrect errors
+    "semi": "off",
+    "@typescript-eslint/semi": ["error", "always"],
+    // note you must disable the base rule as it can report incorrect errors
+    "space-before-function-paren": "off",
+    "@typescript-eslint/space-before-function-paren": ["error", {
+      "anonymous": "always",
+      "named": "never",
+      "asyncArrow": "always"
+    }],
+    // note you must disable the base rule as it can report incorrect errors
+    "keyword-spacing": "off",
+    "@typescript-eslint/keyword-spacing": ["error", { "overrides": {
+      "if": { "after": false },
+      "for": { "after": false },
+      "while": { "after": false }
+    }}],
+    "object-curly-spacing": ["error", "never"]
+  }
+}
+    

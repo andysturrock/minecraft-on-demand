@@ -2,32 +2,32 @@ import util from 'util';
 import {EC2, InstanceState} from '@aws-sdk/client-ec2';
 import {SecretsManager} from '@aws-sdk/client-secrets-manager';
 
-async function lambdaHandler(event: any): Promise<any> {
+async function lambdaHandler(_event: any): Promise<any> {
   try {
     // TODO pass in region
     const region = 'eu-west-2';
 
     type ReturnData = {
-      instanceId?: string;
-      launchTime?: Date;
-      state?: InstanceState;
+      instanceId?: string
+      launchTime?: Date
+      state?: InstanceState
     } | undefined;
-    let returnData: ReturnData = undefined;
+    let returnData: ReturnData;
 
     // Get the instance id from secrets manager
     const smClient = new SecretsManager({
-      region: region
+      region
     });
     const secretValue = await smClient.getSecretValue({SecretId: 'minecraftEC2InstanceId'});
     const secretString = secretValue?.SecretString;
-    let ec2InstanceId: String | undefined = undefined;
+    let ec2InstanceId: String | undefined;
     if(secretString !== undefined) {
       ec2InstanceId = JSON.parse(secretString).minecraftEC2InstanceId;
     }
     if(ec2InstanceId !== undefined) {
-      const ec2Client = new EC2({region: region});
+      const ec2Client = new EC2({region});
 
-      var params = {
+      const params = {
         DryRun: false
       };
 
@@ -43,36 +43,35 @@ async function lambdaHandler(event: any): Promise<any> {
             return true;
           }
           return false;
-        })
+        });
         return returnData !== undefined;
       });
     } else {
-      console.log('Could not get ')
+      console.log('Could not get instance id from input');
     }
 
-    const httpReturn = returnData === undefined ?
-    {
-        statusCode: 200,
-        body: "{}"
-    } :
-    {
-      statusCode: 200,
-      body: JSON.stringify(returnData)
-    };
+    const httpReturn = returnData === undefined
+      ? {
+          statusCode: 200,
+          body: '{}'
+        }
+      : {
+          statusCode: 200,
+          body: JSON.stringify(returnData)
+        };
     console.log(`Returning ${util.inspect(httpReturn)}`);
     return httpReturn;
-  }
-  catch (err) {
+  } catch (err) {
     if(err instanceof Error) {
-      console.error(`Error: ${err.stack}`);
+      console.error(`Error: ${err.stack as string}`);
     } else {
       console.error(`Error: ${JSON.stringify(err)}`);
     }
     return {
       statusCode: 500,
-      body: "Error"
-    }
+      body: 'Error'
+    };
   }
 }
 
-export { lambdaHandler };
+export {lambdaHandler};
