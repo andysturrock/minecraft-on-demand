@@ -1,7 +1,7 @@
 import util from 'util';
 import {Context, APIGatewayProxyEvent, APIGatewayProxyResult} from 'aws-lambda';
 import {EC2, StartInstancesCommandInput, StopInstancesCommandInput} from '@aws-sdk/client-ec2';
-import {DeleteRuleCommandInput, EventBridge, PutRuleCommandInput, PutTargetsCommandInput, RemoveTargetsCommandInput, Target} from '@aws-sdk/client-eventbridge';
+import {DeleteRuleCommandInput, EventBridge, PutRuleCommandInput, PutTargetsCommandInput, RemoveTargetsCommandInput, Tag, Target} from '@aws-sdk/client-eventbridge';
 
 async function lambdaHandler(event: APIGatewayProxyEvent, context: Context): Promise<APIGatewayProxyResult> {
   try {
@@ -72,9 +72,14 @@ async function startServer(instanceId: string,
   // Only need to worry about the minutes and hours in the pattern.
   // The rule will be deleted before "tomorrow" anyway.
   const cronPattern = `cron(${minutes} ${hours} * * ? *)`;
+  const nextTriggerTimeTag: Tag = {
+    Key: 'nextTriggerTime',
+    Value: `${hours}:${minutes}:00`
+  };
   const putRuleParams: PutRuleCommandInput = {
     Name: `Turn_off_${instanceId}`,
-    ScheduleExpression: cronPattern
+    ScheduleExpression: cronPattern,
+    Tags: [nextTriggerTimeTag]
   };
   console.debug(`putRuleParams = ${JSON.stringify(putRuleParams)}`);
   const putRuleResult = await eventBridgeClient.putRule(putRuleParams);
