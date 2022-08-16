@@ -30,6 +30,20 @@ export class LambdaStack extends Stack {
     // And SecretsManager (there is no read-only policy for this)
     const secretsManagerReadPolicy = iam.ManagedPolicy.fromAwsManagedPolicyName("SecretsManagerReadWrite");
     ec2InstanceStateGetLambda.role?.addManagedPolicy(secretsManagerReadPolicy);
+    // And EventBridge read only
+    const eventBridgeReadOnlyAccessPolicy = iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonEventBridgeReadOnlyAccess");
+    ec2InstanceStateGetLambda.role?.addManagedPolicy(eventBridgeReadOnlyAccessPolicy);
+    // And read tags (not provided by AmazonEventBridgeReadOnlyAccess for some reason)
+    ec2InstanceStateGetLambda.role?.attachInlinePolicy(
+      new iam.Policy(this, 'eventsListTagsForResourcePolicy', {
+        statements: [
+          new iam.PolicyStatement({
+            actions: ['events:ListTagsForResource'],
+            resources: ['*'],
+          }),
+        ],
+      }),
+    );
 
     // Create the instance state post lambda
     const ec2InstanceStatePostLambda = new lambda.Function(this, "ec2InstanceStatePostLambda", {

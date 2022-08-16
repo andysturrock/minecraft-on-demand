@@ -27,7 +27,8 @@
     "@typescript-eslint/keyword-spacing": ["error", { "overrides": {
       "if": { "after": false },
       "for": { "after": false },
-      "while": { "after": false }
+      "while": { "after": false },
+      "switch": { "after": false }
     }}],
     "object-curly-spacing": ["error", "never"]
   }

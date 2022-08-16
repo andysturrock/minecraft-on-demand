@@ -46,15 +46,18 @@ class _ExtendTimeButtonButtonState extends State<ExtendTimeButton>
   }
 
   void onPressed() async {
-    print("Button clicked");
+    await _model?.extendServer();
   }
 
   @override
   void onServerStateChange(ServerState serverState) {
+    final serverStopDateTime = _model?.getServerStopDateTime();
     switch (serverState) {
       case ServerState.running:
         setState(() {
-          _buttonText = "Press to request more time.";
+          _buttonText = serverStopDateTime != null
+              ? "Server will stop at ${serverStopDateTime.toLocal()}.\nPress to request more time."
+              : "Press to request more time.";
           _buttonIsClickable = true;
         });
         break;
