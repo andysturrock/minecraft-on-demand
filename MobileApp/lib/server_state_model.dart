@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
 import 'package:http/http.dart' as http;
+import 'package:minecraft_on_demand/abstract_login_model.dart';
 import 'package:minecraft_on_demand/utils/env.dart';
 
 enum ServerState { none, pending, running, stopping, stopped }
@@ -17,6 +18,9 @@ class ServerStateModel {
   DateTime _serverStopDateTime = DateTime.now();
   Timer? _timer;
   String? _instanceId;
+  final AbstractLoginModel _loginModel;
+
+  ServerStateModel(AbstractLoginModel loginModel) : _loginModel = loginModel;
 
   void addListener(ServerStateListener serverStateListener) {
     _listeners.add(serverStateListener);
@@ -45,7 +49,10 @@ class ServerStateModel {
 
     try {
       var uri = Env.getServerStatusUri();
-      final response = await http.get(Uri.parse(uri));
+      final headers = {
+        "Authorization": "Bearer ${_loginModel.getAccessToken()}"
+      };
+      final response = await http.get(Uri.parse(uri), headers: headers);
 
       log('response=$response');
       if (response.statusCode == 200) {

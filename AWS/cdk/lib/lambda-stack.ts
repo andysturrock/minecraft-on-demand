@@ -8,17 +8,17 @@ import * as acm from 'aws-cdk-lib/aws-certificatemanager';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import { getEnv } from './common';
-import { Effect } from 'aws-cdk-lib/aws-iam';
 
 export class LambdaStack extends Stack {
   constructor(scope: Construct, id: string, props: StackProps) {
     super(scope, id, props);
 
-    const region = Stack.of(this).region;
-    const account = Stack.of(this).account;
+    const customDomainName = getEnv('CUSTOM_DOMAIN_NAME', false)!;
+    const r53ZoneId = getEnv('R53_ZONE_ID', false)!;
+    const lambdaVersion = getEnv('LAMBDA_VERSION', false)!;
 
     // Create the instance state get lambda
-    const ec2InstanceStateGetLambda = new lambda.Function(this, "ec2InstanceStateGetLambda", {
+    const ec2InstanceStateGetLambda = new lambda.Function(this, "EC2InstanceStateGetLambda", {
       runtime: lambda.Runtime.NODEJS_14_X,
       code: lambda.Code.fromAsset("../lambda-code/dist/lambda.zip"),
       handler: "ec2_instance_state_get.lambdaHandler",
@@ -28,8 +28,8 @@ export class LambdaStack extends Stack {
     const ec2ReadOnlyPolicy = iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonEC2ReadOnlyAccess");
     ec2InstanceStateGetLambda.role?.addManagedPolicy(ec2ReadOnlyPolicy);
     // And SecretsManager (there is no read-only policy for this)
-    const secretsManagerReadPolicy = iam.ManagedPolicy.fromAwsManagedPolicyName("SecretsManagerReadWrite");
-    ec2InstanceStateGetLambda.role?.addManagedPolicy(secretsManagerReadPolicy);
+    const secretsManagerReadWritePolicy = iam.ManagedPolicy.fromAwsManagedPolicyName("SecretsManagerReadWrite");
+    ec2InstanceStateGetLambda.role?.addManagedPolicy(secretsManagerReadWritePolicy);
     // And EventBridge read only
     const eventBridgeReadOnlyAccessPolicy = iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonEventBridgeReadOnlyAccess");
     ec2InstanceStateGetLambda.role?.addManagedPolicy(eventBridgeReadOnlyAccessPolicy);
@@ -46,7 +46,7 @@ export class LambdaStack extends Stack {
     );
 
     // Create the instance state post lambda
-    const ec2InstanceStatePostLambda = new lambda.Function(this, "ec2InstanceStatePostLambda", {
+    const ec2InstanceStatePostLambda = new lambda.Function(this, "EC2InstanceStatePostLambda", {
       runtime: lambda.Runtime.NODEJS_14_X,
       code: lambda.Code.fromAsset("../lambda-code/dist/lambda.zip"),
       handler: "ec2_instance_state_post.lambdaHandler",
@@ -62,20 +62,30 @@ export class LambdaStack extends Stack {
     const eventBridgePrincipal = new iam.ServicePrincipal('events.amazonaws.com');
     ec2InstanceStatePostLambda.grantInvoke(eventBridgePrincipal);
 
-    const customDomainName = getEnv('CUSTOM_DOMAIN_NAME', false)!;
-    const r53ZoneId = getEnv('R53_ZONE_ID', false)!;
-    const lambdaVersion = getEnv('LAMBDA_VERSION', false)!;
-
     // Get hold of the hosted zone which has previously been created
     const zone = route53.HostedZone.fromHostedZoneAttributes(this, 'R53Zone', {
       zoneName: customDomainName,
       hostedZoneId: r53ZoneId,
     });
 
+    // Create the authorizer lambda
+    const authorizerLambda = new lambda.Function(this, "AuthorizerLambda", {
+      runtime: lambda.Runtime.NODEJS_14_X,
+      code: lambda.Code.fromAsset("../lambda-code/dist/lambda.zip"),
+      handler: "authorization.lambdaHandler",
+      logRetention: logs.RetentionDays.THREE_DAYS
+    });
+    // It needs access to Secrets Manager
+    authorizerLambda.role?.addManagedPolicy(secretsManagerReadWritePolicy);
+    // Add the lambda as a token authorizer to the API Gateway
+    const tokenAuthorizer = new apigateway.TokenAuthorizer(this, 'TokenAuthorizer', {
+      handler: authorizerLambda,
+    });
+
     // Create the cert for the gateway.
     // Usefully, this writes the DNS Validation CNAME records to the R53 zone,
     // which is great as normal Cloudformation doesn't do that.
-    const acmCertificateForCustomDomain = new acm.DnsValidatedCertificate(this, 'Certificate', {
+    const acmCertificateForCustomDomain = new acm.DnsValidatedCertificate(this, 'CustomDomainCertificate', {
       domainName: `api.${customDomainName}`,
       hostedZone: zone,
       validation: acm.CertificateValidation.fromDns(zone),
@@ -120,8 +130,13 @@ export class LambdaStack extends Stack {
       requestTemplates: { "application/json": '{ "statusCode": "200" }' }
     });
     const instanceStateResource = api.root.addResource('instanceState');
-    instanceStateResource.addMethod("GET", instanceStateGetLambdaIntegration);
-    instanceStateResource.addMethod("POST", instanceStatePostLambdaIntegration);
+    // And add the methods with the authorizer
+    instanceStateResource.addMethod("GET", instanceStateGetLambdaIntegration, {
+      authorizer: tokenAuthorizer
+    });
+    instanceStateResource.addMethod("POST", instanceStatePostLambdaIntegration, {
+      authorizer: tokenAuthorizer
+    });
 
     // Create the R53 "A" record to map from the custom domain to the actual API URL
     new route53.ARecord(this, 'CustomDomainAliasRecord', {
