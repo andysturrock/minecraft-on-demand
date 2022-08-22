@@ -1,23 +1,28 @@
-import { Stack, StackProps } from 'aws-cdk-lib';
-import { Construct } from 'constructs';
+import {Stack, StackProps} from 'aws-cdk-lib';
+import {Construct} from 'constructs';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
-import { getEnv } from './common';
+import {getEnv} from './common';
 
 export class CognitoStack extends Stack {
   constructor(scope: Construct, id: string, props: StackProps) {
     super(scope, id, props);
 
-    const customDomainName = getEnv('CUSTOM_DOMAIN_NAME', false)!;
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const userPoolId = getEnv('USERPOOL_ID', false)!;
-    const r53ZoneId = getEnv('R53_ZONE_ID', false)!;
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const clientName = getEnv('CLIENT_NAME', false)!;
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const callbackUrls = getEnv('CALLBACK_URLS', false)!.trim().split(/\s+/);
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const logoutUrls = getEnv('LOGOUT_URLS', false)!.trim().split(/\s+/);
 
     const userPool = cognito.UserPool.fromUserPoolId(this, 'UserPool', userPoolId);
 
     const clientWriteAttributes = new cognito.ClientAttributes().withStandardAttributes({});
     const clientReadAttributes = clientWriteAttributes.withStandardAttributes({fullname: true});
 
-    const client = userPool.addClient('mobile-app', {
-      userPoolClientName: 'mobile-app',
+    const client = userPool.addClient(clientName, {
+      userPoolClientName: clientName,
       preventUserExistenceErrors: true,
       supportedIdentityProviders: [cognito.UserPoolClientIdentityProvider.COGNITO],
       readAttributes: clientReadAttributes,
@@ -27,10 +32,11 @@ export class CognitoStack extends Stack {
           authorizationCodeGrant: true
         },
         scopes: [ cognito.OAuthScope.OPENID ],
-        callbackUrls: [ `https://www.google.com/search?q=loggedin` ],
-        logoutUrls: [ `https://www.google.com/search?q=loggedout` ],
+        callbackUrls,
+        logoutUrls,
       }
     });
     const clientId = client.userPoolClientId;
+    console.log(`clientId = ${clientId}`);
   }
 }

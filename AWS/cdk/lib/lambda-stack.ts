@@ -1,5 +1,5 @@
-import { SecretValue, Stack, StackProps } from 'aws-cdk-lib';
-import { Construct } from 'constructs';
+import {Stack, StackProps} from 'aws-cdk-lib';
+import {Construct} from 'constructs';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as route53 from 'aws-cdk-lib/aws-route53';
 import * as targets from 'aws-cdk-lib/aws-route53-targets';
@@ -7,7 +7,7 @@ import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as acm from 'aws-cdk-lib/aws-certificatemanager';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as logs from 'aws-cdk-lib/aws-logs';
-import { getEnv } from './common';
+import {getEnv} from './common';
 
 export class LambdaStack extends Stack {
   constructor(scope: Construct, id: string, props: StackProps) {
@@ -16,6 +16,10 @@ export class LambdaStack extends Stack {
     const customDomainName = getEnv('CUSTOM_DOMAIN_NAME', false)!;
     const r53ZoneId = getEnv('R53_ZONE_ID', false)!;
     const lambdaVersion = getEnv('LAMBDA_VERSION', false)!;
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const userPoolId = getEnv('USERPOOL_ID', false)!;
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const clientId = getEnv('CLIENT_ID', false)!;
 
     // Create the instance state get lambda
     const ec2InstanceStateGetLambda = new lambda.Function(this, "EC2InstanceStateGetLambda", {
@@ -75,12 +79,14 @@ export class LambdaStack extends Stack {
       handler: "authorization.lambdaHandler",
       logRetention: logs.RetentionDays.THREE_DAYS
     });
-    // It needs access to Secrets Manager
-    authorizerLambda.role?.addManagedPolicy(secretsManagerReadWritePolicy);
     // Add the lambda as a token authorizer to the API Gateway
     const tokenAuthorizer = new apigateway.TokenAuthorizer(this, 'TokenAuthorizer', {
       handler: authorizerLambda,
     });
+    // Add the user pool id and client id into the lambda's environment.
+    // They aren't secret so this is fine.
+    authorizerLambda.addEnvironment('USERPOOL_ID', userPoolId);
+    authorizerLambda.addEnvironment('CLIENT_ID', clientId);
 
     // Create the cert for the gateway.
     // Usefully, this writes the DNS Validation CNAME records to the R53 zone,
@@ -120,14 +126,14 @@ export class LambdaStack extends Stack {
       loggingLevel: apigateway.MethodLoggingLevel.INFO,
       dataTraceEnabled: true,
       stageName: versionIdForURL
-    })
+    });
 
     // Connect the API to the lambdas
     const instanceStateGetLambdaIntegration = new apigateway.LambdaIntegration(ec2InstanceStateGetLambda, {
-      requestTemplates: { "application/json": '{ "statusCode": "200" }' }
+      requestTemplates: {"application/json": '{ "statusCode": "200" }'}
     });
     const instanceStatePostLambdaIntegration = new apigateway.LambdaIntegration(ec2InstanceStatePostLambda, {
-      requestTemplates: { "application/json": '{ "statusCode": "200" }' }
+      requestTemplates: {"application/json": '{ "statusCode": "200" }'}
     });
     const instanceStateResource = api.root.addResource('instanceState');
     // And add the methods with the authorizer
@@ -145,6 +151,6 @@ export class LambdaStack extends Stack {
       target: route53.RecordTarget.fromAlias(new targets.ApiGatewayDomain(customDomain))
     });
     // And path mapping to the API
-    customDomain.addBasePathMapping(api, { basePath: `${versionIdForURL}`, stage: stage });
+    customDomain.addBasePathMapping(api, {basePath: `${versionIdForURL}`, stage: stage});
   }
 }

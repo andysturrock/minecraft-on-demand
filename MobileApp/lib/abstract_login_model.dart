@@ -3,5 +3,6 @@
 abstract class AbstractLoginModel {
   String? getAccessToken();
   Future<void> signInWithAutoCodeExchange();
+  Future<void> signOut();
   get loggedIn;
 }

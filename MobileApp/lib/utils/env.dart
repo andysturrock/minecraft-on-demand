@@ -2,6 +2,8 @@ const bool isProduction = true; //bool.fromEnvironment('dart.vm.product');
 
 /// Class to store environment (ie dev, prod) versions of variables.
 /// TODO make much more flexible and configurable.
+/// Should use something like
+/// https://itnext.io/flutter-1-17-no-more-flavors-no-more-ios-schemas-command-argument-that-solves-everything-8b145ed4285d
 class Env {
   static envName() {
     return isProduction ? 'Production' : 'Test';
@@ -16,8 +18,14 @@ class Env {
   static String getClientId() {
     // Change your client id here.  It is not secret.
     return isProduction
-        ? '2vkshcnjnfm5d1tnjtkkg734k7'
-        : '2vkshcnjnfm5d1tnjtkkg734k7';
+        ? '7og9tibhv7vqc50irak6jt8b9b'
+        : '7og9tibhv7vqc50irak6jt8b9b';
+  }
+
+  static String getDiscoveryUrl() {
+    return isProduction
+        ? 'https://auth.cognito.goatsinlace.com/.well-known/openid-configuration'
+        : 'https://auth.cognito.goatsinlace.com/.well-known/openid-configuration';
   }
 
   static String getRedirectUrl() {
@@ -26,13 +34,7 @@ class Env {
         : 'com.goatsinlace.minecraft://loggedin';
   }
 
-  static String getDiscoveryUrl() {
-    return isProduction
-        ? 'https://auth.minecraft.goatsinlace.com/.well-known/openid-configuration'
-        : 'https://auth.minecraft.goatsinlace.com/.well-known/openid-configuration';
-  }
-
-  static String getPostLogoutRedirectUrl() {
+  static String getSignoutUrl() {
     return isProduction
         ? 'com.goatsinlace.minecraft://loggedout'
         : 'com.goatsinlace.minecraft://loggedout';
@@ -40,19 +42,27 @@ class Env {
 
   static String getAuthorizationEndpoint() {
     return isProduction
-        ? 'https://auth.minecraft.goatsinlace.com/oauth2/authorize'
-        : 'https://auth.minecraft.goatsinlace.com/oauth2/authorize';
+        ? 'https://auth.cognito.goatsinlace.com/oauth2/authorize'
+        : 'https://auth.cognito.goatsinlace.com/oauth2/authorize';
   }
-
-  static String getTokenEndpoint() {
-    return isProduction
-        ? 'https://auth.minecraft.goatsinlace.com/oauth2/token'
-        : 'https://auth.minecraft.goatsinlace.com/oauth2/token';
-  }
+  //https://auth.cognito.goatsinlace.com/oauth2/authorize?response_type=code&client_id=7og9tibhv7vqc50irak6jt8b9b&redirect_uri=com.goatsinlace.minecraft://loggedin
 
   static String getEndSessionEndpoint() {
     return isProduction
-        ? 'https://auth.minecraft.goatsinlace.com/oauth2/logout'
-        : 'https://auth.minecraft.goatsinlace.com/oauth2/logout';
+        ? 'https://auth.cognito.goatsinlace.com/logout'
+        : 'https://auth.cognito.goatsinlace.com/logout';
+  }
+  //https://auth.cognito.goatsinlace.com/logout?client_id=7og9tibhv7vqc50irak6jt8b9b&logout_uri=com.goatsinlace.minecraft://loggedout
+
+  static String getTokenEndpoint() {
+    return isProduction
+        ? 'https://auth.cognito.goatsinlace.com/oauth2/token'
+        : 'https://auth.cognito.goatsinlace.com/oauth2/token';
+  }
+
+  static Uri getEndSessionUri() {
+    return isProduction
+        ? Uri.https('auth.cognito.goatsinlace.com', 'logout')
+        : Uri.https('auth.cognito.goatsinlace.com', 'logout');
   }
 }

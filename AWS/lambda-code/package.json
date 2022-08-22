@@ -27,7 +27,9 @@
     "@types/jsonwebtoken": "^8.5.8",
     "@types/jwk-to-pem": "^2.0.1",
     "@types/node": "^18.6.4",
+    "@types/source-map-support": "^0.5.4",
     "@typescript-eslint/eslint-plugin": "^5.33.1",
+    "@typescript-eslint/parser": "^5.33.1",
     "adm-zip": "^0.5.9",
     "aws-lambda": "^1.0.7",
     "eslint": "^8.22.0",
@@ -43,8 +45,10 @@
     "@aws-sdk/client-ec2": "^3.142.0",
     "@aws-sdk/client-eventbridge": "^3.142.0",
     "@aws-sdk/client-secrets-manager": "^3.142.0",
+    "aws-jwt-verify": "^3.1.0",
     "dotenv": "^8.2.0",
     "jsonwebtoken": "^8.5.1",
-    "jwk-to-pem": "^2.0.5"
+    "jwk-to-pem": "^2.0.5",
+    "source-map-support": "^0.5.21"
   }
 }

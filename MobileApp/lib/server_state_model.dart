@@ -54,7 +54,6 @@ class ServerStateModel {
       };
       final response = await http.get(Uri.parse(uri), headers: headers);
 
-      log('response=$response');
       if (response.statusCode == 200) {
         log('response=${response.body}');
         final json = jsonDecode(response.body);
@@ -73,6 +72,9 @@ class ServerStateModel {
           _serverStopDateTime = DateTime.parse(serverStopTime);
           log("_serverStopDateTime is $_serverStopDateTime");
         }
+      } else {
+        log("Got unexpected response code from server: ${response.statusCode}");
+        log("Response body: ${response.body}");
       }
     } finally {
       if (_serverState != previousServerState ||
@@ -118,7 +120,6 @@ class ServerStateModel {
       var response = await http.post(uri,
           headers: {"Content-Type": "application/json"}, body: body);
 
-      log('response=$response');
       if (response.statusCode == 200) {
         log('response=${response.body}');
       } else {

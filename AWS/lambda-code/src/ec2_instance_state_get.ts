@@ -81,13 +81,13 @@ async function lambdaHandler(event: APIGatewayProxyEvent, context: Context): Pro
 
     const httpReturn = returnData === undefined
       ? {
-          statusCode: 200,
-          body: '{}'
-        }
+        statusCode: 200,
+        body: '{}'
+      }
       : {
-          statusCode: 200,
-          body: JSON.stringify(returnData)
-        };
+        statusCode: 200,
+        body: JSON.stringify(returnData)
+      };
     console.log(`Returning ${JSON.stringify(httpReturn)}`);
     return httpReturn;
   } catch (err) {

@@ -52,6 +52,7 @@ android {
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
         manifestPlaceholders += [
+                // For DemoLoginModel
                 // 'appAuthRedirectScheme': 'com.duendesoftware.demo'
                 'appAuthRedirectScheme': 'com.goatsinlace.minecraft'
         ]

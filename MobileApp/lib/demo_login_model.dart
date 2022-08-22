@@ -9,6 +9,7 @@ class DemoLoginModel extends AbstractLoginModel {
 
   final String _clientId = 'interactive.public';
   final String _redirectUrl = 'com.duendesoftware.demo:/oauthredirect';
+  final String _postLogoutRedirectUrl = 'com.duendesoftware.demo:/';
   final List<String> _scopes = <String>[
     'openid',
     'profile',
@@ -22,7 +23,8 @@ class DemoLoginModel extends AbstractLoginModel {
     tokenEndpoint: 'https://demo.duendesoftware.com/connect/token',
     endSessionEndpoint: 'https://demo.duendesoftware.com/connect/endsession',
   );
-  String? _accessToken = "";
+  String? _accessToken;
+  String? _idToken;
 
   @override
   String? getAccessToken() => _accessToken;
@@ -54,8 +56,18 @@ class DemoLoginModel extends AbstractLoginModel {
     }
   }
 
+  @override
+  Future<void> signOut() async {
+    await _appAuth.endSession(EndSessionRequest(
+        idTokenHint: _idToken,
+        postLogoutRedirectUrl: _postLogoutRedirectUrl,
+        serviceConfiguration: _serviceConfiguration));
+  }
+
   void _processAuthTokenResponse(AuthorizationTokenResponse response) {
+    log("response = $response");
     _accessToken = response.accessToken;
+    _idToken = response.idToken;
     log("response.accessToken = ${response.accessToken}");
     log("response.idToken = ${response.idToken}");
     log("response.refreshToken = ${response.refreshToken}");
