@@ -1,23 +1,28 @@
 import 'source-map-support/register';
 import {APIGatewayTokenAuthorizerEvent, AuthResponse, Context, PolicyDocument, Statement} from 'aws-lambda';
 import {CognitoJwtVerifier} from 'aws-jwt-verify';
-import {GetAssociatedEnclaveCertificateIamRolesCommand} from '@aws-sdk/client-ec2';
 import {getEnv} from './common';
+import {CognitoAccessTokenPayload} from 'aws-jwt-verify/jwt-model';
 
-// You can use Cognito directly with API Gateway to authorize API calls.
-// See https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-enable-cognito-user-pool.html
-// But it's more interesting to learn about JWTs etc and do it "by hand"
-// See https://docs.aws.amazon.com/cognito/latest/developerguide/amazon-cognito-user-pools-using-tokens-verifying-a-jwt.html
-// On the other hand, there is an AWS library to do the validation, so use that as a compromise
+/**
+ * Check whether the given group is within the list of groups
+ *
+ * @param left The left hand list of group names.
+ * @param right The right hand list of group names.
+ * @returns the intersection of the groups.
+ */
+function getGroupIntersection(left: string[], right: string[]): string[] {
+  return left.filter(x => right.includes(x));
+}
 
-async function lambdaHandler(event: APIGatewayTokenAuthorizerEvent, context: Context): Promise<AuthResponse> {
-  console.log(`event: ${JSON.stringify(event)}`);
-  console.log(`context: ${JSON.stringify(context)}`);
+/**
+ * Validate a JWT token contained in an APIGatewayTokenAuthorizerEvent.
+ * @param event the event containing the token
+ * @returns decoded token payload if valid, undefined otherwise.
+ */
+async function validateToken(event: APIGatewayTokenAuthorizerEvent): Promise<CognitoAccessTokenPayload | undefined> {
   try {
-    let token = event.authorizationToken;
-    console.log(`token = ${token}`);
-    token = token.replace('Bearer ', '');
-    console.log(`token now = <${token}>`);
+    const token = event.authorizationToken.replace('Bearer ', '');
 
     // Get the user_pool_id and client_id from the environment.
     // They have been put there when the lambda was created.
@@ -34,19 +39,24 @@ async function lambdaHandler(event: APIGatewayTokenAuthorizerEvent, context: Con
   
       const payload = await verifier.verify(token);
       console.log(`payload: ${JSON.stringify(payload)}`);
-  
-      return generatePolicy('user', 'Allow', event.methodArn);
-    }
 
-    return generatePolicy('user', 'Deny', event.methodArn);
-    
+      return payload;
+    }
+    return undefined;
   } catch (error) {
     console.log(`Caught error :${error}`);
-    return generatePolicy('user', 'Deny', event.methodArn);
+    return undefined;
   }
 }
 
-function generatePolicy(principalId: string, effect: string, resource: any): AuthResponse {
+/**
+ * Create a AuthResponse policy to be used as the return value of an APIGateway authorizer lambda.
+ * @param principalId The Principal for the policy
+ * @param effect Should be one of 'Allow' or 'Deny'
+ * @param resource The resource or resources the policy should apply to.  Will probably be the API method ARN.
+ * @returns 
+ */
+function generatePolicy(principalId: string, effect: 'Allow' | 'Deny', resource: string | string[]): AuthResponse {
   const policyDocument: PolicyDocument = {
     Version: '',
     Statement: []
@@ -75,4 +85,4 @@ function generatePolicy(principalId: string, effect: string, resource: any): Aut
   return authResponse;
 }
 
-export {lambdaHandler};
+export {validateToken, generatePolicy, getGroupIntersection};

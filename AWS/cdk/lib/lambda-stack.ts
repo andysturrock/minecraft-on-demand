@@ -13,13 +13,26 @@ export class LambdaStack extends Stack {
   constructor(scope: Construct, id: string, props: StackProps) {
     super(scope, id, props);
 
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const customDomainName = getEnv('CUSTOM_DOMAIN_NAME', false)!;
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const r53ZoneId = getEnv('R53_ZONE_ID', false)!;
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const lambdaVersion = getEnv('LAMBDA_VERSION', false)!;
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const userPoolId = getEnv('USERPOOL_ID', false)!;
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const clientId = getEnv('CLIENT_ID', false)!;
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const getLambdaValidGroupNames = getEnv('GET_LAMBDA_VALID_GROUP_NAMES', false)!;
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const postLambdaValidGroupNames = getEnv('POST_LAMBDA_VALID_GROUP_NAMES', false)!;
+
+    // Get hold of the hosted zone which has previously been created
+    const zone = route53.HostedZone.fromHostedZoneAttributes(this, 'R53Zone', {
+      zoneName: customDomainName,
+      hostedZoneId: r53ZoneId,
+    });
 
     // Create the instance state get lambda
     const ec2InstanceStateGetLambda = new lambda.Function(this, "EC2InstanceStateGetLambda", {
@@ -66,27 +79,42 @@ export class LambdaStack extends Stack {
     const eventBridgePrincipal = new iam.ServicePrincipal('events.amazonaws.com');
     ec2InstanceStatePostLambda.grantInvoke(eventBridgePrincipal);
 
-    // Get hold of the hosted zone which has previously been created
-    const zone = route53.HostedZone.fromHostedZoneAttributes(this, 'R53Zone', {
-      zoneName: customDomainName,
-      hostedZoneId: r53ZoneId,
-    });
-
-    // Create the authorizer lambda
-    const authorizerLambda = new lambda.Function(this, "AuthorizerLambda", {
+    // Create the get status authorizer lambda
+    const getStatusAuthorizerLambda = new lambda.Function(this, "GetAuthorizerLambda", {
       runtime: lambda.Runtime.NODEJS_14_X,
       code: lambda.Code.fromAsset("../lambda-code/dist/lambda.zip"),
-      handler: "authorization.lambdaHandler",
+      handler: "ec2_instance_state_authorizer.lambdaHandler",
       logRetention: logs.RetentionDays.THREE_DAYS
     });
     // Add the lambda as a token authorizer to the API Gateway
-    const tokenAuthorizer = new apigateway.TokenAuthorizer(this, 'TokenAuthorizer', {
-      handler: authorizerLambda,
+    const getStatusTokenAuthorizer = new apigateway.TokenAuthorizer(this, 'GetStatusTokenAuthorizer', {
+      handler: getStatusAuthorizerLambda,
     });
     // Add the user pool id and client id into the lambda's environment.
     // They aren't secret so this is fine.
-    authorizerLambda.addEnvironment('USERPOOL_ID', userPoolId);
-    authorizerLambda.addEnvironment('CLIENT_ID', clientId);
+    // Also the valid Cognito groups that allow the user to call the API.
+    getStatusAuthorizerLambda.addEnvironment('USERPOOL_ID', userPoolId);
+    getStatusAuthorizerLambda.addEnvironment('CLIENT_ID', clientId);
+    getStatusAuthorizerLambda.addEnvironment('VALID_GROUP_NAMES', getLambdaValidGroupNames);
+
+    // Create the post status authorizer lambda.
+    // It uses the same code but with different env vars passed to it.
+    const postStatusAuthorizerLambda = new lambda.Function(this, "PostAuthorizerLambda", {
+      runtime: lambda.Runtime.NODEJS_14_X,
+      code: lambda.Code.fromAsset("../lambda-code/dist/lambda.zip"),
+      handler: "ec2_instance_state_authorizer.lambdaHandler",
+      logRetention: logs.RetentionDays.THREE_DAYS
+    });
+    // Add the lambda as a token authorizer to the API Gateway
+    const postStatusTokenAuthorizer = new apigateway.TokenAuthorizer(this, 'PostStatusTokenAuthorizer', {
+      handler: postStatusAuthorizerLambda,
+    });
+    // Add the user pool id and client id into the lambda's environment.
+    // They aren't secret so this is fine.
+    // Also the valid Cognito groups that allow the user to call the API.
+    postStatusAuthorizerLambda.addEnvironment('USERPOOL_ID', userPoolId);
+    postStatusAuthorizerLambda.addEnvironment('CLIENT_ID', clientId);
+    postStatusAuthorizerLambda.addEnvironment('VALID_GROUP_NAMES', postLambdaValidGroupNames);
 
     // Create the cert for the gateway.
     // Usefully, this writes the DNS Validation CNAME records to the R53 zone,
@@ -136,12 +164,12 @@ export class LambdaStack extends Stack {
       requestTemplates: {"application/json": '{ "statusCode": "200" }'}
     });
     const instanceStateResource = api.root.addResource('instanceState');
-    // And add the methods with the authorizer
+    // And add the methods with the authorizers
     instanceStateResource.addMethod("GET", instanceStateGetLambdaIntegration, {
-      authorizer: tokenAuthorizer
+      authorizer: getStatusTokenAuthorizer
     });
     instanceStateResource.addMethod("POST", instanceStatePostLambdaIntegration, {
-      authorizer: tokenAuthorizer
+      authorizer: postStatusTokenAuthorizer
     });
 
     // Create the R53 "A" record to map from the custom domain to the actual API URL
