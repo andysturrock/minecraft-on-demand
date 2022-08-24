@@ -48,14 +48,44 @@ class _MinecraftStopStartButtonState extends State<MinecraftStopStartButton>
   }
 
   void onPressed() async {
+    int? httpStatus = 500;
     switch (_serverState) {
       case ServerState.running:
-        await _model?.stopServer();
+        httpStatus = await _model?.stopServer();
         break;
       case ServerState.stopped:
-        await _model?.startServer();
+        httpStatus = await _model?.startServer();
         break;
       default:
+    }
+
+    String errorText = '';
+    switch (httpStatus) {
+      case 200:
+        break;
+      case 403:
+        errorText = "You don't have permission to do that.";
+        break;
+      case 500:
+        errorText = "Failed to extend time.";
+        break;
+      default:
+        break;
+    }
+    if (errorText != '') {
+      showDialog<String>(
+        context: context,
+        builder: (BuildContext context) => AlertDialog(
+          title: const Text('Error'),
+          content: const Text("You don't have permission to do that."),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.pop(context, 'OK'),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
     }
   }
 
