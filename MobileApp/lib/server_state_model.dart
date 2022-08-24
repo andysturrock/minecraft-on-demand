@@ -27,6 +27,8 @@ class ServerStateModel {
     if (_listeners.length == 1) {
       _startPollingForStatus();
     }
+    // Tell the new listener about the current state
+    serverStateListener.onServerStateChange(_serverState);
   }
 
   bool removeListener(ServerStateListener serverStateListener) {
@@ -61,11 +63,11 @@ class ServerStateModel {
         final state = json["state"];
         if (state != null) {
           final name = state["Name"];
-          log("state is: $name");
           _serverState = ServerState.values.byName(name);
           log("state is: $_serverState");
         } else {
           log("State is unknown");
+          _serverState = ServerState.none;
         }
         final serverStopTime = json["serverStopTime"];
         if (serverStopTime != null) {
@@ -75,6 +77,7 @@ class ServerStateModel {
       } else {
         log("Got unexpected response code from server: ${response.statusCode}");
         log("Response body: ${response.body}");
+        _serverState = ServerState.none;
       }
     } finally {
       if (_serverState != previousServerState ||
@@ -121,9 +124,9 @@ class ServerStateModel {
           headers: {"Content-Type": "application/json"}, body: body);
 
       if (response.statusCode == 200) {
-        log('response=${response.body}');
+        log('REST call returned status 200 ${response.body}');
       } else {
-        log("State is unknown");
+        log("Call to start server failed ${response.statusCode}, ${response.body}");
       }
     } catch (error) {
       log("Error: $error");

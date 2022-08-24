@@ -25,11 +25,13 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
+  bool _loggedIn = false;
+
   @override
   Widget build(BuildContext context) {
     final loginModel = context.read<AbstractLoginModel>();
 
-    var loginButton = ElevatedButton(
+    final loginButton = ElevatedButton(
       style: ElevatedButton.styleFrom(
         // Foreground color
         onPrimary: Theme.of(context).colorScheme.onPrimary,
@@ -38,12 +40,14 @@ class _MyAppState extends State<MyApp> {
       ).copyWith(elevation: ButtonStyleButton.allOrNull(0.0)),
       onPressed: () async {
         await loginModel.signInWithAutoCodeExchange();
-        setState(() {});
+        setState(() {
+          _loggedIn = loginModel.loggedIn;
+        });
       },
       child: const Text('Login'),
     );
 
-    var children = loginModel.loggedIn
+    final children = _loggedIn
         ? [
             const Expanded(child: MinecraftStopStartButton()),
             const Expanded(
@@ -51,6 +55,39 @@ class _MyAppState extends State<MyApp> {
             )
           ]
         : [Center(child: loginButton)];
+
+    final drawer = Drawer(
+        child: ListView(
+      padding: EdgeInsets.zero,
+      children: [
+        const DrawerHeader(
+          decoration: BoxDecoration(
+            color: Colors.blue,
+          ),
+          child: Text(''),
+        ),
+        ListTile(
+          title: const Text('Login'),
+          onTap: () async {
+            await loginModel.signInWithAutoCodeExchange();
+            setState(() {
+              _loggedIn = loginModel.loggedIn;
+            });
+            if (!mounted) return;
+          },
+        ),
+        ListTile(
+          title: const Text('Logout'),
+          onTap: () async {
+            await loginModel.signOut();
+            setState(() {
+              _loggedIn = false;
+            });
+          },
+        ),
+      ],
+    ));
+
     return MaterialApp(
         title: 'Minecraft on demand',
         theme: ThemeData(
@@ -65,35 +102,6 @@ class _MyAppState extends State<MyApp> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: children,
             ),
-            drawer: Drawer(
-                child: ListView(
-              padding: EdgeInsets.zero,
-              children: [
-                const DrawerHeader(
-                  decoration: BoxDecoration(
-                    color: Colors.blue,
-                  ),
-                  child: Text('Log in and out'),
-                ),
-                ListTile(
-                  title: const Text('Login'),
-                  onTap: () async {
-                    await loginModel.signInWithAutoCodeExchange();
-                    setState(() {});
-                    if (!mounted) return;
-                    // Navigator.pop(context);
-                  },
-                ),
-                ListTile(
-                  title: const Text('Logout'),
-                  onTap: () async {
-                    await loginModel.signOut();
-                    setState(() {});
-                    if (!mounted) return;
-                    // Navigator.pop(context);
-                  },
-                ),
-              ],
-            ))));
+            drawer: drawer));
   }
 }
