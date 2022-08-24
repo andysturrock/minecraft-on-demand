@@ -1,4 +1,4 @@
-import {Stack, StackProps} from 'aws-cdk-lib';
+import {Duration, Stack, StackProps} from 'aws-cdk-lib';
 import {Construct} from 'constructs';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as route53 from 'aws-cdk-lib/aws-route53';
@@ -27,6 +27,8 @@ export class LambdaStack extends Stack {
     const getLambdaValidGroupNames = getEnv('GET_LAMBDA_VALID_GROUP_NAMES', false)!;
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const postLambdaValidGroupNames = getEnv('POST_LAMBDA_VALID_GROUP_NAMES', false)!;
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const minecraftEC2InstanceId = getEnv('MINECRAFT_EC2_INSTANCE_ID', false)!;
 
     // Get hold of the hosted zone which has previously been created
     const zone = route53.HostedZone.fromHostedZoneAttributes(this, 'R53Zone', {
@@ -44,9 +46,6 @@ export class LambdaStack extends Stack {
     // Allow it read-only access to EC2.
     const ec2ReadOnlyPolicy = iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonEC2ReadOnlyAccess");
     ec2InstanceStateGetLambda.role?.addManagedPolicy(ec2ReadOnlyPolicy);
-    // And SecretsManager (there is no read-only policy for this)
-    const secretsManagerReadWritePolicy = iam.ManagedPolicy.fromAwsManagedPolicyName("SecretsManagerReadWrite");
-    ec2InstanceStateGetLambda.role?.addManagedPolicy(secretsManagerReadWritePolicy);
     // And EventBridge read only
     const eventBridgeReadOnlyAccessPolicy = iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonEventBridgeReadOnlyAccess");
     ec2InstanceStateGetLambda.role?.addManagedPolicy(eventBridgeReadOnlyAccessPolicy);
@@ -61,6 +60,7 @@ export class LambdaStack extends Stack {
         ],
       }),
     );
+    ec2InstanceStateGetLambda.addEnvironment('MINECRAFT_EC2_INSTANCE_ID', minecraftEC2InstanceId);
 
     // Create the instance state post lambda
     const ec2InstanceStatePostLambda = new lambda.Function(this, "EC2InstanceStatePostLambda", {
@@ -89,6 +89,8 @@ export class LambdaStack extends Stack {
     // Add the lambda as a token authorizer to the API Gateway
     const getStatusTokenAuthorizer = new apigateway.TokenAuthorizer(this, 'GetStatusTokenAuthorizer', {
       handler: getStatusAuthorizerLambda,
+      authorizerName: 'GetStatusTokenAuthorizer',
+      resultsCacheTtl: Duration.seconds(0)
     });
     // Add the user pool id and client id into the lambda's environment.
     // They aren't secret so this is fine.
@@ -108,6 +110,8 @@ export class LambdaStack extends Stack {
     // Add the lambda as a token authorizer to the API Gateway
     const postStatusTokenAuthorizer = new apigateway.TokenAuthorizer(this, 'PostStatusTokenAuthorizer', {
       handler: postStatusAuthorizerLambda,
+      authorizerName: 'PostStatusTokenAuthorizer',
+      resultsCacheTtl: Duration.seconds(0)
     });
     // Add the user pool id and client id into the lambda's environment.
     // They aren't secret so this is fine.

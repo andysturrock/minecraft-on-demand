@@ -1,9 +1,9 @@
 import {EC2, InstanceState} from '@aws-sdk/client-ec2';
-import {SecretsManager} from '@aws-sdk/client-secrets-manager';
-import {APIGatewayProxyEvent, APIGatewayProxyResult, Context} from 'aws-lambda';
+import {APIGatewayProxyResult} from 'aws-lambda';
 import {EventBridge, ListRulesCommandInput, ListTagsForResourceCommandInput} from '@aws-sdk/client-eventbridge';
+import {getEnv} from './common';
 
-async function lambdaHandler(event: APIGatewayProxyEvent, context: Context): Promise<APIGatewayProxyResult> {
+async function lambdaHandler(): Promise<APIGatewayProxyResult> {
   try {
     // TODO pass in region
     const region = 'eu-west-2';
@@ -16,16 +16,9 @@ async function lambdaHandler(event: APIGatewayProxyEvent, context: Context): Pro
     } | undefined;
     let returnData: ReturnData;
 
-    // Get the instance id from secrets manager
-    const smClient = new SecretsManager({
-      region
-    });
-    const secretValue = await smClient.getSecretValue({SecretId: 'minecraftEC2InstanceId'});
-    const secretString = secretValue?.SecretString;
-    let ec2InstanceId: string | undefined;
-    if(secretString !== undefined) {
-      ec2InstanceId = JSON.parse(secretString).minecraftEC2InstanceId;
-    }
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const ec2InstanceId = getEnv('MINECRAFT_EC2_INSTANCE_ID', false)!;
+
     if(ec2InstanceId !== undefined) {
       const ec2Client = new EC2({region});
       const eventBridgeClient = new EventBridge(region);
@@ -76,7 +69,7 @@ async function lambdaHandler(event: APIGatewayProxyEvent, context: Context): Pro
         return returnData !== undefined;
       });
     } else {
-      console.log('Could not get instance id from input');
+      console.log('Could not get instance id from environment var MINECRAFT_EC2_INSTANCE_ID');
     }
 
     const httpReturn = returnData === undefined

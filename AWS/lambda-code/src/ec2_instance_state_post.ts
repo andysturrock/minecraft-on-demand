@@ -5,8 +5,6 @@ import {DeleteRuleCommandInput, EventBridge, PutRuleCommandInput, PutTargetsComm
 
 async function lambdaHandler(event: APIGatewayProxyEvent, context: Context): Promise<APIGatewayProxyResult> {
   try {
-    console.debug(`event: ${util.inspect(event)}`);
-    console.debug(`context: ${util.inspect(context)}`);
     if(event.body == null) {
       throw new Error('Missing event.body');
     }
@@ -27,21 +25,21 @@ async function lambdaHandler(event: APIGatewayProxyEvent, context: Context): Pro
     const eventBridgeClient = new EventBridge(region);
 
     switch(action) {
-      case 'start': {
-        await startServer(instanceId, invokedFunctionArn, eventBridgeClient, ec2Client);
-        break;
-      }
-      case 'stop':{
-        const deleteStopRule = body.deleteStopRule;
-        await stopServer(instanceId, deleteStopRule, eventBridgeClient, ec2Client);
-        break;
-      }
-      case 'extend':{
-        await extendServer(instanceId, invokedFunctionArn, eventBridgeClient);
-        break;
-      }
-      default:
-        console.warn(`Unexpected action: ${action}`);
+    case 'start': {
+      await startServer(instanceId, invokedFunctionArn, eventBridgeClient, ec2Client);
+      break;
+    }
+    case 'stop':{
+      const deleteStopRule = body.deleteStopRule;
+      await stopServer(instanceId, deleteStopRule, eventBridgeClient, ec2Client);
+      break;
+    }
+    case 'extend':{
+      await extendServer(instanceId, invokedFunctionArn, eventBridgeClient);
+      break;
+    }
+    default:
+      console.warn(`Unexpected action: ${action}`);
     }
 
     return {
