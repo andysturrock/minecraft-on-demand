@@ -46,7 +46,35 @@ class _ExtendTimeButtonButtonState extends State<ExtendTimeButton>
   }
 
   void onPressed() async {
-    await _model?.extendServer();
+    int? httpStatus = await _model?.extendServer();
+    String errorText = '';
+    switch (httpStatus) {
+      case 200:
+        break;
+      case 403:
+        errorText = "You don't have permission to do that.";
+        break;
+      case 500:
+        errorText = "Failed to extend time.";
+        break;
+      default:
+        break;
+    }
+    if (errorText != '') {
+      showDialog<String>(
+        context: context,
+        builder: (BuildContext context) => AlertDialog(
+          title: const Text('Error'),
+          content: const Text("You don't have permission to do that."),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.pop(context, 'OK'),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    }
   }
 
   @override
