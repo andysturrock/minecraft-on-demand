@@ -8,7 +8,6 @@ class LoginModel extends AbstractLoginModel {
   bool _loggedIn = false;
   final FlutterAppAuth _appAuth = const FlutterAppAuth();
   String? _accessToken;
-  String? _idToken;
 
   final String _clientId = Env.getClientId();
   final String _redirectUrl = Env.getRedirectUrl();
@@ -47,22 +46,36 @@ class LoginModel extends AbstractLoginModel {
   @override
   Future<void> signOut() async {
     try {
-      // TODO cannot get this to work with Cognito.  I'll raise an issue.
-      final endSessionResponse = await _appAuth.endSession(EndSessionRequest(
-          idTokenHint: _idToken,
-          postLogoutRedirectUrl: Env.getSignoutUrl(),
-          additionalParameters: {
-            "client_id": _clientId,
-            "redirect_uri": Env.getRedirectUrl(),
-            "response_type": "code"
-          }));
+      // Using this set of params redirects back to login screen
+      // which is confusing
 
-      log('endSessionResponse.state: ${endSessionResponse?.state}');
+      // await _appAuth.endSession(EndSessionRequest(
+      //     postLogoutRedirectUrl: Env.getSignoutUrl(),
+      //     idTokenHint: _idToken,
+      //     additionalParameters: {
+      //       "client_id": _clientId,
+      //       "redirect_uri": Env.getRedirectUrl(),
+      //       "response_type": "code"
+      //     },
+      //     serviceConfiguration: _serviceConfiguration));
+
+      // This set does actually log the user out, and then throws
+      // an exception, which we can swallow below.
+      // So it sort of works, but not very cleanly.
+      await _appAuth.endSession(EndSessionRequest(additionalParameters: {
+        "client_id": _clientId,
+        "logout_uri": Env.getSignoutUrl(),
+      }, serviceConfiguration: _serviceConfiguration));
       _loggedIn = false;
     } on PlatformException catch (error) {
       log("Caught $error");
+      // May or may not have actually logged out, but better to force
+      // re-login rather than leaving the user stuck.
+      _loggedIn = false;
     } catch (error) {
       log("Caught $error");
+      // Ditto from above
+      _loggedIn = false;
     }
   }
 
@@ -72,12 +85,10 @@ class LoginModel extends AbstractLoginModel {
   get loggedIn => _loggedIn;
 
   void _processAuthTokenResponse(AuthorizationTokenResponse response) {
-    log("response = $response");
     _accessToken = response.accessToken;
-    _idToken = response.idToken;
     log("response.accessToken = ${response.accessToken}");
-    log("response.idToken = ${response.idToken}");
-    log("response.refreshToken = ${response.refreshToken}");
-    log("response.accessTokenExpirationDateTime = ${response.accessTokenExpirationDateTime!.toIso8601String()}");
+    // log("response.idToken = ${response.idToken}");
+    // log("response.refreshToken = ${response.refreshToken}");
+    // log("response.accessTokenExpirationDateTime = ${response.accessTokenExpirationDateTime!.toIso8601String()}");
   }
 }
