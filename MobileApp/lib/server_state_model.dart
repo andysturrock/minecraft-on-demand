@@ -95,21 +95,21 @@ class ServerStateModel {
     _timer?.cancel();
   }
 
-  Future<void> stopServer() async {
-    _postMessage("stop");
+  Future<int> stopServer() async {
+    return _postMessage("stop");
   }
 
-  Future<void> startServer() async {
-    _postMessage("start");
+  Future<int> startServer() async {
+    return _postMessage("start");
   }
 
-  Future<void> extendServer() async {
-    _postMessage("extend");
+  Future<int> extendServer() async {
+    return _postMessage("extend");
   }
 
   DateTime getServerStopDateTime() => _serverStopDateTime;
 
-  Future<void> _postMessage(String action) async {
+  Future<int> _postMessage(String action) async {
     try {
       final uri = Uri.parse(Env.getServerStatusUri());
 
@@ -120,16 +120,25 @@ class ServerStateModel {
       };
       final body = json.encode(data);
 
-      var response = await http.post(uri,
-          headers: {"Content-Type": "application/json"}, body: body);
+      final headers = {
+        "Authorization": "Bearer ${_loginModel.getAccessToken()}",
+        "Content-Type": "application/json"
+      };
+
+      var response = await http.post(uri, headers: headers, body: body);
 
       if (response.statusCode == 200) {
         log('REST call returned status 200 ${response.body}');
       } else {
         log("Call to start server failed ${response.statusCode}, ${response.body}");
       }
+
+      // Do a quick refresh of the state rather than wait for the next poll.
+      _getServerState();
+      return response.statusCode;
     } catch (error) {
       log("Error: $error");
+      return 500;
     }
   }
 }
