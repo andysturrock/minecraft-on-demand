@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:developer';
 import 'package:http/http.dart' as http;
+import 'package:minecraft_on_demand/abstract_login_model.dart';
 import 'package:minecraft_on_demand/utils/env.dart';
 
 enum ServerState { none, pending, running, stopping, stopped }
@@ -10,10 +12,15 @@ abstract class ServerStateListener {
 }
 
 class ServerStateModel {
-  List<ServerStateListener> _listeners = [];
-  final _pollPeriod = new Duration(seconds: 5);
+  final List<ServerStateListener> _listeners = [];
+  final _pollPeriod = const Duration(seconds: 5);
+  ServerState _serverState = ServerState.none;
+  DateTime _serverStopDateTime = DateTime.now();
   Timer? _timer;
   String? _instanceId;
+  final AbstractLoginModel _loginModel;
+
+  ServerStateModel(AbstractLoginModel loginModel) : _loginModel = loginModel;
 
   void addListener(ServerStateListener serverStateListener) {
     _listeners.add(serverStateListener);
@@ -31,40 +38,54 @@ class ServerStateModel {
   }
 
   void _notifyListeners(ServerState serverState) {
-    _listeners.forEach((listener) {
+    for (var listener in _listeners) {
       listener.onServerStateChange(serverState);
-    });
+    }
   }
 
-  void _getServerStatus() async {
-    ServerState serverState = ServerState.none;
+  void _getServerState() async {
+    ServerState previousServerState = _serverState;
+    DateTime previousServerStopDateTime = _serverStopDateTime;
 
     try {
       var uri = Env.getServerStatusUri();
-      final response = await http.get(Uri.parse(uri));
+      final headers = {
+        "Authorization": "Bearer ${_loginModel.getAccessToken()}"
+      };
+      final response = await http.get(Uri.parse(uri), headers: headers);
 
-      print('response=$response');
       if (response.statusCode == 200) {
-        print('response=${response.body}');
+        log('response=${response.body}');
         final json = jsonDecode(response.body);
         _instanceId = json["instanceId"];
         final state = json["state"];
         if (state != null) {
           final name = state["Name"];
-          print("state is: $name");
-          serverState = ServerState.values.byName(name);
-          print("state is: $serverState");
+          log("state is: $name");
+          _serverState = ServerState.values.byName(name);
+          log("state is: $_serverState");
         } else {
-          print("State is unknown");
+          log("State is unknown");
         }
+        final serverStopTime = json["serverStopTime"];
+        if (serverStopTime != null) {
+          _serverStopDateTime = DateTime.parse(serverStopTime);
+          log("_serverStopDateTime is $_serverStopDateTime");
+        }
+      } else {
+        log("Got unexpected response code from server: ${response.statusCode}");
+        log("Response body: ${response.body}");
       }
     } finally {
-      _notifyListeners(serverState);
+      if (_serverState != previousServerState ||
+          _serverStopDateTime != previousServerStopDateTime) {
+        _notifyListeners(_serverState);
+      }
     }
   }
 
   void _startPollingForStatus() {
-    _timer = Timer.periodic(_pollPeriod, (_) => _getServerStatus());
+    _timer = Timer.periodic(_pollPeriod, (_) => _getServerState());
   }
 
   void _stopPollingForStatus() {
@@ -78,6 +99,12 @@ class ServerStateModel {
   Future<void> startServer() async {
     _postMessage("start");
   }
+
+  Future<void> extendServer() async {
+    _postMessage("extend");
+  }
+
+  DateTime getServerStopDateTime() => _serverStopDateTime;
 
   Future<void> _postMessage(String action) async {
     try {
@@ -93,14 +120,13 @@ class ServerStateModel {
       var response = await http.post(uri,
           headers: {"Content-Type": "application/json"}, body: body);
 
-      print('response=$response');
       if (response.statusCode == 200) {
-        print('response=${response.body}');
+        log('response=${response.body}');
       } else {
-        print("State is unknown");
+        log("State is unknown");
       }
     } catch (error) {
-      print("Error: $error");
+      log("Error: $error");
     }
   }
 }
