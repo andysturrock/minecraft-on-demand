@@ -21,7 +21,7 @@ export class CognitoStack extends Stack {
     const clientWriteAttributes = new cognito.ClientAttributes().withStandardAttributes({});
     const clientReadAttributes = clientWriteAttributes.withStandardAttributes({fullname: true});
 
-    const client = userPool.addClient(clientName, {
+    userPool.addClient(clientName, {
       userPoolClientName: clientName,
       preventUserExistenceErrors: true,
       supportedIdentityProviders: [cognito.UserPoolClientIdentityProvider.COGNITO],
@@ -36,7 +36,5 @@ export class CognitoStack extends Stack {
         logoutUrls,
       }
     });
-    const clientId = client.userPoolClientId;
-    console.log(`clientId = ${clientId}`);
   }
 }
