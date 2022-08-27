@@ -2,7 +2,7 @@ import React, {useState} from "react";
 import './App.css';
 import {Link, NavigateFunction} from 'react-router-dom';
 import styled from "styled-components";
-import LoginLogoutController from "./LoginLogoutController";
+import {AuthController} from "./AuthController";
 import {useNavigate} from "react-router-dom";
 
 class LoginLogoutButton extends React.Component {
@@ -20,40 +20,18 @@ class LoginLogoutButton extends React.Component {
   cursor: pointer;
 `;
 
-  // private loggedIn() {
-  //   return (
-  //     <div>
-  //       <Link to={{pathname: this.createCompleteLoginUrl().toString()}} className="btn btn-primary">Login</Link>
-  //     </div>
-  //   );
-  // }
-  // private loggedOut() {
-  //   return (
-  //     <div>
-  //       <Link to={{pathname: this.createCompleteLoginUrl().toString()}} className="btn btn-primary">Login</Link>
-  //     </div>
-  //   );
-  // }
-
   private async _login() {
-    // const navigate = useNavigate();
-    window.location.replace(await LoginLogoutController.getLoginUrl());
-    // navigate(LoginLogoutController.getLoginUrl());
-    // this.props.navigate(LoginLogoutController.getLoginUrl());
+    const codeVerifier = AuthController.createCodeVerifier();
+    AuthController.saveCodeVerifier(codeVerifier);
+    window.location.replace(await AuthController.getLoginUrl(codeVerifier));
   }
 
   private _logout() {
-    window.location.replace(LoginLogoutController.getLogoutUrl());
+    window.location.replace(AuthController.getLogoutUrl());
   }
 
   render() {
-    // return LoginLogoutController.loggedIn? this.loggedIn() : this.loggedOut();
-    // return (
-    //   <this._button onClick={this._login.bind(this)}>
-    //     Login
-    //   </this._button>
-    // );
-    return LoginLogoutController.loggedIn? (
+    return AuthController.loggedIn? (
       <this._button onClick={this._logout.bind(this)}>
         Logout
       </this._button>
