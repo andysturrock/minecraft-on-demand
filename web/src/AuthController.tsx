@@ -1,18 +1,18 @@
-import './App.css';
 import axios, {AxiosRequestConfig} from 'axios';
 import qs from 'qs';
 import {encode as base64encode} from "base64-arraybuffer";
-import React from 'react';
 
 export class AuthController  {
   private static _loggedIn = false;
   private static _loginUri = 'https://auth.cognito.goatsinlace.com/oauth2/authorize';
   private static _logoutUri = 'https://auth.cognito.goatsinlace.com/logout';
-  private static _clientId = '3lrpn3o73mu30plbseb9b7kens';
+  private static _clientId = '58i7e8qoje8blu5lpmtdkajjlu';
   private static _loginRedirectUri = 'http://localhost:3000/login';
   private static _logoutRedirectUri = 'http://localhost:3000/logout';
   private static _tokenEndpoint = 'https://auth.cognito.goatsinlace.com/oauth2/token';
+  private static _idToken = '';
   private static _accessToken = '';
+  private static _refreshToken = '';
 
   static async getLoginUrl(codeVerifier: string) {
     const codeChallenge = await AuthController._createCodeChallenge(codeVerifier);
@@ -55,8 +55,16 @@ export class AuthController  {
     return AuthController._loggedIn;
   }
 
+  static get idToken() {
+    return AuthController._idToken;
+  }
+
   static get accessToken() {
     return AuthController._accessToken;
+  }
+
+  static get refreshToken() {
+    return AuthController._refreshToken;
   }
 
   /**
@@ -133,13 +141,13 @@ export class AuthController  {
     };
     try {
       const result = await axios(axiosRequestConfig);
-      // console.log(`token exchange result = ${JSON.stringify(result)}`);
-      console.log(`token exchange OK`);
+      AuthController._idToken = result.data.id_token;
+      AuthController._accessToken = result.data.access_token;
+      AuthController._refreshToken = result.data.refresh_token;
+      console.log(`token exchange result = ${JSON.stringify(result)}`);
     } catch (error) {
-      // console.log(`Caught error = ${JSON.stringify(error)}`);
-      console.log(`token exchange Failed`);
+      console.log(`Caught error = ${JSON.stringify(error)}`);
     }
-    
   }
 }
 

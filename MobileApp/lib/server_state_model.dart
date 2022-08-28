@@ -56,6 +56,8 @@ class ServerStateModel {
       };
       final response = await http.get(Uri.parse(uri), headers: headers);
 
+      log("accesstoken = ${_loginModel.getAccessToken()}");
+
       if (response.statusCode == 200) {
         log('response=${response.body}');
         final json = jsonDecode(response.body);

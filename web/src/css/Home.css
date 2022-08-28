@@ -1,8 +1,8 @@
-.App {
+.Home {
   text-align: center;
 }
 
-.App-header {
+.Home-header {
   background-color: #ffffff;
   min-height: 100vh;
   display: flex;
@@ -13,12 +13,18 @@
   color: white;
 }
 
-.App-link {
+.Home-link {
   color: #61dafb;
 }
 
-.App-para {
+.Home-para {
   color: #61dafb;
+}
+
+.Home-fixed-topright {
+  position: fixed;
+  top: 0;
+  right: 0;
 }
 
 @keyframes App-logo-spin {

@@ -1,14 +1,8 @@
-import React, {useState} from "react";
-import './App.css';
-import {Link, NavigateFunction} from 'react-router-dom';
+import React from "react";
 import styled from "styled-components";
 import {AuthController} from "./AuthController";
-import {useNavigate} from "react-router-dom";
 
 class LoginLogoutButton extends React.Component {
-  private _loginUri = 'https://auth.cognito.goatsinlace.com/oauth2/authorize';
-  private _clientId = '3lrpn3o73mu30plbseb9b7kens';
-  private _redirectUri = 'http://localhost:3000/loggedin';
 
   private _button = styled.button`
   background-color: black;
@@ -35,6 +29,7 @@ class LoginLogoutButton extends React.Component {
       <this._button onClick={this._logout.bind(this)}>
         Logout
       </this._button>
+
     ) : (
       <this._button onClick={this._login.bind(this)}>
         Login

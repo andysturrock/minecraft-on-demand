@@ -5,18 +5,10 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Launch via npm",
-      "type": "node",
+      "type": "pwa-chrome",
       "request": "launch",
-      "cwd": "${workspaceFolder}",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run-script", "debug"]
-    },
-    {
-      "type": "chrome",
-      "request": "launch",
-      "name": "Launch Chrome on localhost:3000",
-      "url": "http://localhost:3000",
+      "name": "Launch Chrome against localhost",
+      "url": "http://localhost:8080",
       "webRoot": "${workspaceFolder}"
     }
   ]

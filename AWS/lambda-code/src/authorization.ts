@@ -28,12 +28,13 @@ async function validateToken(event: APIGatewayTokenAuthorizerEvent): Promise<Cog
     // They have been put there when the lambda was created.
     // They aren't secret, so this is fine.
     const userPoolId = getEnv('USERPOOL_ID', false);
-    const clientId = getEnv('CLIENT_ID', false);
-    if(userPoolId !== undefined && clientId !== undefined) {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const clientIds = getEnv('CLIENT_IDS', false)!.trim().split(/\s+/);
+    if(userPoolId !== undefined && clientIds !== undefined) {
       const verifier = CognitoJwtVerifier.create({
         userPoolId,
         tokenUse: 'access',
-        clientId,
+        clientId: clientIds,
         includeRawJwtInErrors: true // can also be specified as parameter to the `verify` call
       });
   

@@ -75,11 +75,19 @@ async function lambdaHandler(): Promise<APIGatewayProxyResult> {
     const httpReturn = returnData === undefined
       ? {
         statusCode: 200,
-        body: '{}'
+        body: '{}',
+        headers: {
+          "Access-Control-Allow-Origin" : "*",
+          "Access-Control-Allow-Credentials" : true
+        }
       }
       : {
         statusCode: 200,
-        body: JSON.stringify(returnData)
+        body: JSON.stringify(returnData),
+        headers: {
+          "Access-Control-Allow-Origin" : "*",
+          "Access-Control-Allow-Credentials" : true
+        },
       };
     console.log(`Returning ${JSON.stringify(httpReturn)}`);
     return httpReturn;

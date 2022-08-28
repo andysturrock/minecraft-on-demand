@@ -1,26 +1,6 @@
-import './App.css';
-import LoginLogoutButton from './LoginLogoutButton';
 import {NavigateFunction, useLocation, useNavigate} from "react-router-dom";
 import {AuthController} from './AuthController';
-import {useEffect, useState} from 'react';
 import React from 'react';
-
-// export default function Login() {
-//   console.log("In <Login>");
-//   const location = useLocation();
-//   const navigate = useNavigate();
-//   useEffect(() => {
-//     async function fetchData() {
-//       await AuthController.exchangeCodeForToken(location.search);
-//       navigate('/');
-//     }
-//     fetchData();
-//   }, [location.search, navigate]);
-
-
-//   return <p className="App-para">Please wait...</p>;
-// }
-
 
 interface LoginProps {
   navigate: NavigateFunction;

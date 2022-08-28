@@ -8,6 +8,7 @@ import * as acm from 'aws-cdk-lib/aws-certificatemanager';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import {getEnv} from './common';
+import {CorsOptions} from 'aws-cdk-lib/aws-apigateway';
 
 export class LambdaStack extends Stack {
   constructor(scope: Construct, id: string, props: StackProps) {
@@ -22,7 +23,7 @@ export class LambdaStack extends Stack {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const userPoolId = getEnv('USERPOOL_ID', false)!;
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const clientId = getEnv('CLIENT_ID', false)!;
+    const clientIds = getEnv('CLIENT_IDS', false)!;
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const getLambdaValidGroupNames = getEnv('GET_LAMBDA_VALID_GROUP_NAMES', false)!;
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -92,11 +93,11 @@ export class LambdaStack extends Stack {
       authorizerName: 'GetStatusTokenAuthorizer',
       resultsCacheTtl: Duration.seconds(0)
     });
-    // Add the user pool id and client id into the lambda's environment.
+    // Add the user pool id, client ids and group names into the lambda's environment.
     // They aren't secret so this is fine.
     // Also the valid Cognito groups that allow the user to call the API.
     getStatusAuthorizerLambda.addEnvironment('USERPOOL_ID', userPoolId);
-    getStatusAuthorizerLambda.addEnvironment('CLIENT_ID', clientId);
+    getStatusAuthorizerLambda.addEnvironment('CLIENT_IDS', clientIds);
     getStatusAuthorizerLambda.addEnvironment('VALID_GROUP_NAMES', getLambdaValidGroupNames);
 
     // Create the post status authorizer lambda.
@@ -113,11 +114,11 @@ export class LambdaStack extends Stack {
       authorizerName: 'PostStatusTokenAuthorizer',
       resultsCacheTtl: Duration.seconds(0)
     });
-    // Add the user pool id and client id into the lambda's environment.
+    // Add the user pool id, client ids and client id into the lambda's environment.
     // They aren't secret so this is fine.
     // Also the valid Cognito groups that allow the user to call the API.
     postStatusAuthorizerLambda.addEnvironment('USERPOOL_ID', userPoolId);
-    postStatusAuthorizerLambda.addEnvironment('CLIENT_ID', clientId);
+    postStatusAuthorizerLambda.addEnvironment('CLIENT_IDS', clientIds);
     postStatusAuthorizerLambda.addEnvironment('VALID_GROUP_NAMES', postLambdaValidGroupNames);
 
     // Create the cert for the gateway.
@@ -151,7 +152,7 @@ export class LambdaStack extends Stack {
     // so replace the dots with underscores first.
     const versionIdForURL = lambdaVersion.replace(/\./g, '_');
     const apiGatewayDeployment = new apigateway.Deployment(this, 'ApiGatewayDeployment', {
-      api: api
+      api: api,
     });
     const stage = new apigateway.Stage(this, 'Stage', {
       deployment: apiGatewayDeployment,
@@ -175,6 +176,15 @@ export class LambdaStack extends Stack {
     instanceStateResource.addMethod("POST", instanceStatePostLambdaIntegration, {
       authorizer: postStatusTokenAuthorizer
     });
+
+    // TODO set to actual origin to be more secure.
+    const corsOptions: CorsOptions = {
+      allowOrigins: apigateway.Cors.ALL_ORIGINS,
+      allowHeaders: apigateway.Cors.DEFAULT_HEADERS,
+      allowMethods: apigateway.Cors.ALL_METHODS,//['OPTIONS', 'GET', 'POST'],
+      allowCredentials: true
+    };
+    instanceStateResource.addCorsPreflight(corsOptions);
 
     // Create the R53 "A" record to map from the custom domain to the actual API URL
     new route53.ARecord(this, 'CustomDomainAliasRecord', {

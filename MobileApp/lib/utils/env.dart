@@ -18,8 +18,8 @@ class Env {
   static String getClientId() {
     // Change your client id here.  It is not secret.
     return isProduction
-        ? '7og9tibhv7vqc50irak6jt8b9b'
-        : '7og9tibhv7vqc50irak6jt8b9b';
+        ? '7gqqcticojcg87vjd7lf6q4mdk'
+        : '7gqqcticojcg87vjd7lf6q4mdk';
   }
 
   static String getDiscoveryUrl() {
