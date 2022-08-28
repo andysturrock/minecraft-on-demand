@@ -8,7 +8,7 @@ import * as acm from 'aws-cdk-lib/aws-certificatemanager';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import {getEnv} from './common';
-import {CorsOptions} from 'aws-cdk-lib/aws-apigateway';
+import {CorsOptions, ResponseType} from 'aws-cdk-lib/aws-apigateway';
 
 export class LambdaStack extends Stack {
   constructor(scope: Construct, id: string, props: StackProps) {
@@ -30,6 +30,9 @@ export class LambdaStack extends Stack {
     const postLambdaValidGroupNames = getEnv('POST_LAMBDA_VALID_GROUP_NAMES', false)!;
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const minecraftEC2InstanceId = getEnv('MINECRAFT_EC2_INSTANCE_ID', false)!;
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const accessControlAllowOrigin = getEnv('ACCESS_CONTROL_ALLOW_ORIGIN', false)!;
+    const region = Stack.of(this).region;
 
     // Get hold of the hosted zone which has previously been created
     const zone = route53.HostedZone.fromHostedZoneAttributes(this, 'R53Zone', {
@@ -44,6 +47,10 @@ export class LambdaStack extends Stack {
       handler: "ec2_instance_state_get.lambdaHandler",
       logRetention: logs.RetentionDays.THREE_DAYS
     });
+    // Add some runtime env vars
+    ec2InstanceStateGetLambda.addEnvironment('MINECRAFT_EC2_INSTANCE_ID', minecraftEC2InstanceId);
+    ec2InstanceStateGetLambda.addEnvironment('ACCESS_CONTROL_ALLOW_ORIGIN', accessControlAllowOrigin);
+    ec2InstanceStateGetLambda.addEnvironment('REGION', region);
     // Allow it read-only access to EC2.
     const ec2ReadOnlyPolicy = iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonEC2ReadOnlyAccess");
     ec2InstanceStateGetLambda.role?.addManagedPolicy(ec2ReadOnlyPolicy);
@@ -61,7 +68,6 @@ export class LambdaStack extends Stack {
         ],
       }),
     );
-    ec2InstanceStateGetLambda.addEnvironment('MINECRAFT_EC2_INSTANCE_ID', minecraftEC2InstanceId);
 
     // Create the instance state post lambda
     const ec2InstanceStatePostLambda = new lambda.Function(this, "EC2InstanceStatePostLambda", {
@@ -70,6 +76,9 @@ export class LambdaStack extends Stack {
       handler: "ec2_instance_state_post.lambdaHandler",
       logRetention: logs.RetentionDays.THREE_DAYS
     });
+    // Add some runtime env vars
+    ec2InstanceStatePostLambda.addEnvironment('ACCESS_CONTROL_ALLOW_ORIGIN', accessControlAllowOrigin);
+    ec2InstanceStatePostLambda.addEnvironment('REGION', region);
     // Allow it read-write access to EC2.
     const ec2ReadWritePolicy = iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonEC2FullAccess");
     ec2InstanceStatePostLambda.role?.addManagedPolicy(ec2ReadWritePolicy);
@@ -177,14 +186,29 @@ export class LambdaStack extends Stack {
       authorizer: postStatusTokenAuthorizer
     });
 
-    // TODO set to actual origin to be more secure.
+    // Add an OPTIONS mock integration which returns the CORS headers.
     const corsOptions: CorsOptions = {
-      allowOrigins: apigateway.Cors.ALL_ORIGINS,
+      allowOrigins: [accessControlAllowOrigin],
       allowHeaders: apigateway.Cors.DEFAULT_HEADERS,
       allowMethods: apigateway.Cors.ALL_METHODS,//['OPTIONS', 'GET', 'POST'],
-      allowCredentials: true
+      // allowCredentials: true
     };
     instanceStateResource.addCorsPreflight(corsOptions);
+
+    // Add a CORS header for when the authorizer declines the request.
+    // Otherwise the web client gets a CORS error rather than the 403.
+    new apigateway.GatewayResponse(this, 'GatewayResponse', {
+      restApi: api,
+      type: ResponseType.DEFAULT_4XX,
+      responseHeaders: {
+        // Mappings here have to be wrapped in single quotes.
+        "Access-Control-Allow-Origin" : `'${accessControlAllowOrigin}'`,
+        "Access-Control-Allow-Headers" : `'${apigateway.Cors.DEFAULT_HEADERS.join(' ')}'`,
+        "Access-Control-Allow-Methods" : `'${apigateway.Cors.ALL_METHODS.join(' ')}'`,
+        // "Access-Control-Allow-Credentials" : "'true'"
+      },
+      statusCode: "418"
+    });
 
     // Create the R53 "A" record to map from the custom domain to the actual API URL
     new route53.ARecord(this, 'CustomDomainAliasRecord', {

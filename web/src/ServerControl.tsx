@@ -46,8 +46,7 @@ export default class ServerControl extends React.Component<ServerControlProps, S
     const axiosRequestConfig :AxiosRequestConfig = {
       headers: {
         "Authorization": `Bearer ${AuthController.accessToken}`
-      },
-      withCredentials: false
+      }
     };
     try {
       const result = await axios.get(uri, axiosRequestConfig);
@@ -152,8 +151,7 @@ export default class ServerControl extends React.Component<ServerControlProps, S
     const axiosRequestConfig :AxiosRequestConfig = {
       method: 'post',
       url: Env.getServerStatusUri(),
-      headers,
-      withCredentials: false
+      headers
     };
     try {
       const result = await axios.post(uri, data, axiosRequestConfig);
