@@ -10,6 +10,7 @@ type ServerControlState = {
   instanceId: string;
   launchTime: Date;
   serverState: ServerState;
+  serverStopTime: Date;
 };
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 interface ServerControlProps {
@@ -22,7 +23,8 @@ export default class ServerControl extends React.Component<ServerControlProps, S
     const serverControlState: ServerControlState = {
       instanceId: 'unknown',
       launchTime: new Date(),
-      serverState: ServerState.none
+      serverState: ServerState.none,
+      serverStopTime: new Date()
     };
     this.state = serverControlState;
   }
@@ -49,10 +51,12 @@ export default class ServerControl extends React.Component<ServerControlProps, S
     };
     try {
       const result = await axios.get(uri, axiosRequestConfig);
+      console.log(`result = ${JSON.stringify(result)}`);
       const serverControlState: ServerControlState = {
         instanceId: result.data.instanceId,
         launchTime: new Date(result.data.launchTime),
-        serverState: ServerState[result.data.state.Name as keyof typeof ServerState]
+        serverState: ServerState[result.data.state.Name as keyof typeof ServerState],
+        serverStopTime: new Date(result.data.serverStopTime)
       };
       this.setState(serverControlState);
     }
@@ -68,8 +72,6 @@ export default class ServerControl extends React.Component<ServerControlProps, S
   }
 
   render() {
-    const dateString = this.state.launchTime.toLocaleTimeString();
-    const serverStateString = ServerState[this.state.serverState];
     const buttonData = {
       text: '',
       enabled: false,
@@ -99,12 +101,19 @@ export default class ServerControl extends React.Component<ServerControlProps, S
       <>
         <ul className="black">
           <li>Server Instance Id: {this.state.instanceId}</li>
-          <li>Server Launch Time: {dateString}</li>
-          <li>Server State: {serverStateString}</li>
+          <li>Server Launch Time: {this.state.launchTime.toLocaleTimeString()}</li>
+          <li>Server State: {ServerState[this.state.serverState]}</li>
+          <li>Server Stop Time: {this.state.serverStopTime.toLocaleTimeString()}</li>
         </ul>
-        <this._button onClick={buttonData.action.bind(this)}>
+        <this._stopStartButton onClick={buttonData.action.bind(this)}>
           {buttonData.text}
-        </this._button>
+        </this._stopStartButton>
+        { this.state.serverState == ServerState.running ? 
+          <this._extendButton onClick={this._extendServer.bind(this)}>
+          Extend stop time
+          </this._extendButton> :
+          <></>
+        }
       </>
     );
   }
@@ -118,6 +127,12 @@ export default class ServerControl extends React.Component<ServerControlProps, S
   private async _stopServer() {
     console.log('Stopping server...');
     await this._post('stop');
+    await this._getServerState();
+  }
+
+  private async _extendServer() {
+    console.log('Extending server...');
+    await this._post('extend');
     await this._getServerState();
   }
 
@@ -153,12 +168,26 @@ export default class ServerControl extends React.Component<ServerControlProps, S
       if(err.response) {
         console.log(err.response.status);
         console.log(err.response.data);
-        alert(`${err.message}`);
+        if(err.response.status === 403) {
+          alert("You don't have permission to do that");
+        }
+        else {
+          alert(`${err.message}`);
+        }
       }
     }
   }
 
-  private _button = styled.button`
+  private _stopStartButton = styled.button`
+  background-color: black;
+  color: white;
+  font-size: 20px;
+  padding: 10px 60px;
+  border-radius: 5px;
+  margin: 10px 0px;
+  cursor: pointer;
+`;
+  private _extendButton = styled.button`
   background-color: black;
   color: white;
   font-size: 20px;

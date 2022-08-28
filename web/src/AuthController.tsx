@@ -144,7 +144,7 @@ export class AuthController  {
       AuthController._idToken = result.data.id_token;
       AuthController._accessToken = result.data.access_token;
       AuthController._refreshToken = result.data.refresh_token;
-      console.log(`token exchange result = ${JSON.stringify(result)}`);
+      // console.log(`token exchange result = ${JSON.stringify(result)}`);
     } catch (error) {
       console.log(`Caught error = ${JSON.stringify(error)}`);
     }
