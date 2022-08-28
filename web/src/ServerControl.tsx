@@ -49,7 +49,6 @@ export default class ServerControl extends React.Component<ServerControlProps, S
     };
     try {
       const result = await axios.get(uri, axiosRequestConfig);
-      console.log(`result = ${JSON.stringify(result)}`);
       const serverControlState: ServerControlState = {
         instanceId: result.data.instanceId,
         launchTime: new Date(result.data.launchTime),
@@ -110,12 +109,53 @@ export default class ServerControl extends React.Component<ServerControlProps, S
     );
   }
 
-  private _startServer() {
+  private async _startServer() {
     console.log('Starting server...');
+    await this._post('start');
+    await this._getServerState();
   }
 
-  private _stopServer() {
+  private async _stopServer() {
     console.log('Stopping server...');
+    await this._post('stop');
+    await this._getServerState();
+  }
+
+  private async _post(action: 'stop' | 'start' | 'extend') {
+    const headers = {
+      "Authorization": `Bearer ${AuthController.accessToken}`,
+      "Content-Type": "application/json"
+    };
+
+    const data = {
+      action,
+      instanceId: this.state.instanceId,
+      deleteStopRule: true
+    };
+
+    const uri = Env.getServerStatusUri();
+    const axiosRequestConfig :AxiosRequestConfig = {
+      method: 'post',
+      url: Env.getServerStatusUri(),
+      headers,
+      withCredentials: false
+    };
+    try {
+      const result = await axios.post(uri, data, axiosRequestConfig);
+      if(result.status != 200) {
+        alert(`Request failed, status ${result.status}`);
+      }
+    }
+    catch (error) {
+      const err = error as AxiosError;
+      console.error(`Error setting server status: ${JSON.stringify(err)}`);
+      console.log(`code: ${err.code}`);
+      if(err.response) {
+        console.log(err.response.status);
+        console.log(err.response.data);
+        alert(`${err.message}`);
+      }
+    }
   }
 
   private _button = styled.button`
