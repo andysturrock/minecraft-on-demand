@@ -1,15 +1,16 @@
 import axios, {AxiosRequestConfig} from 'axios';
 import qs from 'qs';
 import {encode as base64encode} from "base64-arraybuffer";
+import {Env} from './utils/env';
 
 export class AuthController  {
   private static _loggedIn = false;
-  private static _loginUri = 'https://auth.cognito.goatsinlace.com/oauth2/authorize';
-  private static _logoutUri = 'https://auth.cognito.goatsinlace.com/logout';
-  private static _clientId = '58i7e8qoje8blu5lpmtdkajjlu';
-  private static _loginRedirectUri = 'http://localhost:3000/login';
-  private static _logoutRedirectUri = 'http://localhost:3000/logout';
-  private static _tokenEndpoint = 'https://auth.cognito.goatsinlace.com/oauth2/token';
+  private static _loginUri = Env.getLoginUri();
+  private static _logoutUri = Env.getLogoutUri();
+  private static _clientId = Env.getClientId();
+  private static _loginRedirectUri = Env.getLoginRedirectUri();
+  private static _logoutRedirectUri = Env.getLogoutRedirectUri();
+  private static _tokenEndpoint = Env.getTokenEndpoint();
   private static _idToken = '';
   private static _accessToken = '';
   private static _refreshToken = '';
