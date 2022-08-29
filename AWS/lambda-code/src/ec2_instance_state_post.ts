@@ -1,9 +1,10 @@
-import util from 'util';
 import {Context, APIGatewayProxyEvent, APIGatewayProxyResult} from 'aws-lambda';
 import {EC2, StartInstancesCommandInput, StopInstancesCommandInput} from '@aws-sdk/client-ec2';
 import {DeleteRuleCommandInput, EventBridge, PutRuleCommandInput, PutTargetsCommandInput, RemoveTargetsCommandInput, Tag, TagResourceCommandInput, Target} from '@aws-sdk/client-eventbridge';
+import {getEnv} from './common';
 
 async function lambdaHandler(event: APIGatewayProxyEvent, context: Context): Promise<APIGatewayProxyResult> {
+  let accessControlAllowOrigin = "";
   try {
     if(event.body == null) {
       throw new Error('Missing event.body');
@@ -19,8 +20,11 @@ async function lambdaHandler(event: APIGatewayProxyEvent, context: Context): Pro
     }
     const invokedFunctionArn = context.invokedFunctionArn;
 
-    // TODO pass in region
-    const region = {region: 'eu-west-2'};
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const region = getEnv('REGION', false)!;
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    accessControlAllowOrigin = getEnv('ACCESS_CONTROL_ALLOW_ORIGIN', false)!;
+
     const ec2Client = new EC2(region);
     const eventBridgeClient = new EventBridge(region);
 
@@ -42,25 +46,37 @@ async function lambdaHandler(event: APIGatewayProxyEvent, context: Context): Pro
       console.warn(`Unexpected action: ${action}`);
     }
 
-    return {
+    const result = {
+      headers: {
+        "Access-Control-Allow-Origin" : accessControlAllowOrigin,
+        "Access-Control-Allow-Credentials" : true
+      },
       statusCode: 200,
       body: `${JSON.stringify({Status: 'OK'})}`
     };
+    console.debug(`Returning ${JSON.stringify(result)}`);
+    return result;
   } catch (err) {
     let errorText = 'Unknown error';
     if(err instanceof Error) {
       console.error(`Caught Error exception: ${err.stack as string}`);
-      const error = err;
+      const error = err as Error;
       errorText = error.message;
     } else {
       console.error(`Caught exception: ${JSON.stringify(err)}`);
     }
-    return {
+    const errorResult = {
+      headers: {
+        "Access-Control-Allow-Origin" : accessControlAllowOrigin,
+        "Access-Control-Allow-Credentials" : true
+      },
       statusCode: 500,
       body: JSON.stringify({
         error: errorText
       })
     };
+    console.debug(`Returning error result ${JSON.stringify(errorResult)}`);
+    return errorResult;
   }
 }
 

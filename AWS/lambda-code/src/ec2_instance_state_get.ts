@@ -4,10 +4,8 @@ import {EventBridge, ListRulesCommandInput, ListTagsForResourceCommandInput} fro
 import {getEnv} from './common';
 
 async function lambdaHandler(): Promise<APIGatewayProxyResult> {
+  let accessControlAllowOrigin = "";
   try {
-    // TODO pass in region
-    const region = 'eu-west-2';
-
     type ReturnData = {
       instanceId?: string
       launchTime?: Date
@@ -18,6 +16,10 @@ async function lambdaHandler(): Promise<APIGatewayProxyResult> {
 
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const ec2InstanceId = getEnv('MINECRAFT_EC2_INSTANCE_ID', false)!;
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const region = getEnv('REGION', false)!;
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    accessControlAllowOrigin = getEnv('ACCESS_CONTROL_ALLOW_ORIGIN', false)!;
 
     if(ec2InstanceId !== undefined) {
       const ec2Client = new EC2({region});
@@ -75,11 +77,19 @@ async function lambdaHandler(): Promise<APIGatewayProxyResult> {
     const httpReturn = returnData === undefined
       ? {
         statusCode: 200,
-        body: '{}'
+        body: '{}',
+        headers: {
+          "Access-Control-Allow-Origin" : accessControlAllowOrigin,
+          "Access-Control-Allow-Credentials" : true
+        }
       }
       : {
         statusCode: 200,
-        body: JSON.stringify(returnData)
+        body: JSON.stringify(returnData),
+        headers: {
+          "Access-Control-Allow-Origin" : accessControlAllowOrigin,
+          "Access-Control-Allow-Credentials" : true
+        },
       };
     console.log(`Returning ${JSON.stringify(httpReturn)}`);
     return httpReturn;
@@ -90,6 +100,10 @@ async function lambdaHandler(): Promise<APIGatewayProxyResult> {
       console.error(`Error: ${JSON.stringify(err)}`);
     }
     return {
+      headers: {
+        "Access-Control-Allow-Origin" : accessControlAllowOrigin,
+        "Access-Control-Allow-Credentials" : true
+      },
       statusCode: 500,
       body: 'Error'
     };
