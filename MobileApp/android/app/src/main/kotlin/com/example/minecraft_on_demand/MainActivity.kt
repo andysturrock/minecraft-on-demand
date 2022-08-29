@@ -1,4 +1,4 @@
-package com.goatsinlace.minecraft_on_demand
+package com.goatsinlace.minecraft-on-demand
 
 import io.flutter.embedding.android.FlutterActivity
 

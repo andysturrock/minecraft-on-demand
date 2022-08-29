@@ -1,4 +1,4 @@
-# minecraft_on_demand
+# minecraft-on-demand
 
 A new Flutter project.
 

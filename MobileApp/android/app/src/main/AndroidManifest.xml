@@ -1,8 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.goatsinlace.minecraft_on_demand">
+    package="com.goatsinlace.minecraft-on-demand">
     <uses-permission android:name="android.permission.INTERNET"/>
    <application
-        android:label="minecraft_on_demand"
+        android:label="minecraft-on-demand"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
