@@ -39,7 +39,7 @@ class ServerStateModel {
     return wasRegistered;
   }
 
-  void _notifyListeners(ServerState serverState) {
+  void notifyListeners(ServerState serverState) {
     for (var listener in _listeners) {
       listener.onServerStateChange(serverState);
     }
@@ -84,7 +84,7 @@ class ServerStateModel {
     } finally {
       if (_serverState != previousServerState ||
           _serverStopDateTime != previousServerStopDateTime) {
-        _notifyListeners(_serverState);
+        notifyListeners(_serverState);
       }
     }
   }

@@ -46,6 +46,12 @@ class _ExtendTimeButtonButtonState extends State<ExtendTimeButton>
   }
 
   void onPressed() async {
+    // Disable the button to stop multiple clicks.
+    // It will get re-enabled on the next server state update.
+    setState(() {
+      _buttonText = "Wait...";
+      _buttonIsClickable = false;
+    });
     int? httpStatus = await _model?.extendServer();
     String errorText = '';
     switch (httpStatus) {

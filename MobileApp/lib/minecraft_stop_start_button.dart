@@ -51,9 +51,17 @@ class _MinecraftStopStartButtonState extends State<MinecraftStopStartButton>
     int? httpStatus = 500;
     switch (_serverState) {
       case ServerState.running:
+        // Set the state to stopping immediately.
+        // This disables this button and the extend time button.
+        // Otherwise the kids click multiple times!
+        _model?.notifyListeners(ServerState.stopping);
         httpStatus = await _model?.stopServer();
         break;
       case ServerState.stopped:
+        // Set the state to pending immediately.
+        // This disables this button and the extend time button.
+        // Otherwise the kids click multiple times!
+        _model?.notifyListeners(ServerState.pending);
         httpStatus = await _model?.startServer();
         break;
       default:
