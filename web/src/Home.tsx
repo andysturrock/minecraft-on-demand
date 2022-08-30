@@ -11,9 +11,11 @@ export default function Home() {
       </div>
       {AuthController.loggedIn ? 
         <div><ServerControl></ServerControl>
-          <a href="itms-services://?action=download-manifest&url=https://www.minecraft.goatsinlace.com/manifest.plist">Install iOS App</a>
-          <a href="https://www.minecraft.goatsinlace.com/minecraft-on-demand.apk">Install Android App</a>
-        </div> : 
+          <p></p>
+          <a href="itms-services://?action=download-manifest&url=https://www.minecraft.goatsinlace.com/manifest.plist" download>Install iOS App</a>
+          <p></p>
+          <a href="https://www.minecraft.goatsinlace.com/minecraft-on-demand.apk" download>Install Android App</a>
+        </div> :
         <p className="Home-para">Please log in</p>
       }
     </>
