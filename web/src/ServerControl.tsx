@@ -1,6 +1,6 @@
 import axios, {AxiosError, AxiosRequestConfig} from 'axios';
 import React from 'react';
-import styled from "styled-components";
+import styled, {css} from "styled-components";
 import {AuthController} from './AuthController';
 import {Env} from './utils/env';
 import './css/ServerControl.css';
@@ -11,7 +11,7 @@ type ServerControlState = {
   launchTime: Date;
   serverState: ServerState;
   serverStopTime: Date;
-  extendButtonEnabled: boolean;
+  extendButtonDisabled: boolean;
 };
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 interface ServerControlProps {
@@ -26,7 +26,7 @@ export default class ServerControl extends React.Component<ServerControlProps, S
       launchTime: new Date(),
       serverState: ServerState.none,
       serverStopTime: new Date(),
-      extendButtonEnabled: false
+      extendButtonDisabled: true
     };
     this.state = serverControlState;
   }
@@ -52,15 +52,15 @@ export default class ServerControl extends React.Component<ServerControlProps, S
     };
     try {
       const result = await axios.get(uri, axiosRequestConfig);
-      console.log(`result = ${JSON.stringify(result)}`);
+      // console.debug(`result = ${JSON.stringify(result)}`);
       const serverState = ServerState[result.data.state.Name as keyof typeof ServerState];
-      const extendButtonEnabled = (serverState == ServerState.running);
+      const extendButtonDisabled = (serverState != ServerState.running);
       const serverControlState: ServerControlState = {
         instanceId: result.data.instanceId,
         launchTime: new Date(result.data.launchTime),
         serverState,
         serverStopTime: new Date(result.data.serverStopTime),
-        extendButtonEnabled
+        extendButtonDisabled: extendButtonDisabled
       };
       this.setState(serverControlState);
     }
@@ -76,31 +76,34 @@ export default class ServerControl extends React.Component<ServerControlProps, S
   }
 
   render() {
-    const buttonData = {
+    const stopStartButtonData = {
       text: '',
-      enabled: false,
+      disabled: true,
       // eslint-disable-next-line @typescript-eslint/no-empty-function
       action: () => {}
     };
     switch(this.state.serverState) {
     case ServerState.running:
-      buttonData.text = "Stop";
-      buttonData.enabled = true;
-      buttonData.action = this._stopServer;
+      stopStartButtonData.text = "Stop";
+      stopStartButtonData.disabled = false;
+      stopStartButtonData.action = this._stopServer;
       break;
     case ServerState.stopped:
-      buttonData.text = "Start";
-      buttonData.enabled = true;
-      buttonData.action = this._startServer;
+      stopStartButtonData.text = "Start";
+      stopStartButtonData.disabled = false;
+      stopStartButtonData.action = this._startServer;
       break;
     case ServerState.stopping:
     case ServerState.pending:
     case ServerState.none:
     default:
-      buttonData.text = "Wait...";
-      buttonData.enabled = true;
+      stopStartButtonData.text = "Wait...";
+      stopStartButtonData.disabled = true;
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
+      stopStartButtonData.action = () => {};
       break;
     }
+
     return (
       <>
         <ul className="black">
@@ -109,11 +112,12 @@ export default class ServerControl extends React.Component<ServerControlProps, S
           <li>Server State: {ServerState[this.state.serverState]}</li>
           <li>Server Stop Time: {this.state.serverStopTime.toLocaleTimeString()}</li>
         </ul>
-        <this._stopStartButton onClick={buttonData.action.bind(this)}>
-          {buttonData.text}
+        <this._stopStartButton onClick={stopStartButtonData.action.bind(this)} disabled={stopStartButtonData.disabled}>
+          {stopStartButtonData.text}
         </this._stopStartButton>
+
         { this.state.serverState == ServerState.running ? 
-          <this._extendButton onClick={this._extendServer.bind(this)}>
+          <this._extendButton onClick={this._extendServer.bind(this)} disabled={this.state.extendButtonDisabled}>
           Extend stop time
           </this._extendButton> :
           <></>
@@ -135,7 +139,7 @@ export default class ServerControl extends React.Component<ServerControlProps, S
   }
 
   private async _stopServer() {
-    // Immediately set the state to pending, mainly to disable the button.
+    // Immediately set the state to stopping, mainly to disable the button.
     // Stop the kids pressing it multiple times!
     const serverControlState: ServerControlState = this.state;
     serverControlState.serverState = ServerState.stopping;
@@ -147,10 +151,10 @@ export default class ServerControl extends React.Component<ServerControlProps, S
   }
 
   private async _extendServer() {
-    // Immediately set the state to pending, mainly to disable the button.
+    // Immediately disable the button.
     // Stop the kids pressing it multiple times!
     const serverControlState: ServerControlState = this.state;
-    serverControlState.extendButtonEnabled = false;
+    serverControlState.extendButtonDisabled = true;
     this.setState(serverControlState);
     console.log('Extending server...');
     await this._post('extend');
@@ -200,22 +204,52 @@ export default class ServerControl extends React.Component<ServerControlProps, S
   }
 
   private _stopStartButton = styled.button`
-  background-color: black;
-  color: white;
   font-size: 20px;
   padding: 10px 60px;
   border-radius: 5px;
   margin: 10px 0px;
-  cursor: pointer;
+  ${(props) => {
+    switch(props.disabled) {
+    case true:
+      return css`
+        border: 1px solid #999999;
+        background-color: #cccccc;
+        color: #666666;
+        cursor: not-allowed;
+      `;
+      break;
+    default:
+      return css`
+        background-color: black;
+        color: white;
+        cursor: pointer;
+      `;
+    }
+  }}
 `;
   private _extendButton = styled.button`
-  background-color: black;
-  color: white;
   font-size: 20px;
   padding: 10px 60px;
   border-radius: 5px;
   margin: 10px 0px;
-  cursor: pointer;
+  ${(props) => {
+    switch(props.disabled) {
+    case true:
+      return css`
+        border: 1px solid #999999;
+        background-color: #cccccc;
+        color: #666666;
+        cursor: not-allowed;
+      `;  
+      break;
+    default:
+      return css`
+        background-color: black;
+        color: white;
+        cursor: pointer;
+      `;
+    }
+  }}
 `;
 }
 
