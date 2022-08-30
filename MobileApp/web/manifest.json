@@ -1,6 +1,6 @@
 {
-    "name": "minecraft_on_demand",
-    "short_name": "minecraft_on_demand",
+    "name": "minecraft-on-demand",
+    "short_name": "minecraft-on-demand",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
