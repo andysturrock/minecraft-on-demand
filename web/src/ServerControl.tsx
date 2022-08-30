@@ -11,6 +11,7 @@ type ServerControlState = {
   launchTime: Date;
   serverState: ServerState;
   serverStopTime: Date;
+  extendButtonEnabled: boolean;
 };
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 interface ServerControlProps {
@@ -24,7 +25,8 @@ export default class ServerControl extends React.Component<ServerControlProps, S
       instanceId: 'unknown',
       launchTime: new Date(),
       serverState: ServerState.none,
-      serverStopTime: new Date()
+      serverStopTime: new Date(),
+      extendButtonEnabled: false
     };
     this.state = serverControlState;
   }
@@ -51,11 +53,14 @@ export default class ServerControl extends React.Component<ServerControlProps, S
     try {
       const result = await axios.get(uri, axiosRequestConfig);
       console.log(`result = ${JSON.stringify(result)}`);
+      const serverState = ServerState[result.data.state.Name as keyof typeof ServerState];
+      const extendButtonEnabled = (serverState == ServerState.running);
       const serverControlState: ServerControlState = {
         instanceId: result.data.instanceId,
         launchTime: new Date(result.data.launchTime),
-        serverState: ServerState[result.data.state.Name as keyof typeof ServerState],
-        serverStopTime: new Date(result.data.serverStopTime)
+        serverState,
+        serverStopTime: new Date(result.data.serverStopTime),
+        extendButtonEnabled
       };
       this.setState(serverControlState);
     }
@@ -118,20 +123,38 @@ export default class ServerControl extends React.Component<ServerControlProps, S
   }
 
   private async _startServer() {
+    // Immediately set the state to pending, mainly to disable the button.
+    // Stop the kids pressing it multiple times!
+    const serverControlState: ServerControlState = this.state;
+    serverControlState.serverState = ServerState.pending;
+    this.setState(serverControlState);
     console.log('Starting server...');
     await this._post('start');
+    // If the POST fails, the button will be re-enabled here.
     await this._getServerState();
   }
 
   private async _stopServer() {
+    // Immediately set the state to pending, mainly to disable the button.
+    // Stop the kids pressing it multiple times!
+    const serverControlState: ServerControlState = this.state;
+    serverControlState.serverState = ServerState.stopping;
+    this.setState(serverControlState);
     console.log('Stopping server...');
     await this._post('stop');
+    // If the POST fails, the button will be re-enabled here.
     await this._getServerState();
   }
 
   private async _extendServer() {
+    // Immediately set the state to pending, mainly to disable the button.
+    // Stop the kids pressing it multiple times!
+    const serverControlState: ServerControlState = this.state;
+    serverControlState.extendButtonEnabled = false;
+    this.setState(serverControlState);
     console.log('Extending server...');
     await this._post('extend');
+    // If the POST fails, the button will be re-enabled here.
     await this._getServerState();
   }
 

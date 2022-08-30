@@ -1,4 +1,4 @@
-const isProduction = false;
+const isProduction = window.location.toString().includes('www.minecraft.goatsinlace.com');
 
 export class Env {
   static envName() {
