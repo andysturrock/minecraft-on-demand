@@ -10,7 +10,12 @@ export default function Home() {
         <LoginLogoutButton/>
       </div>
       {AuthController.loggedIn ? 
-        <ServerControl></ServerControl> : 
+        <div><ServerControl></ServerControl>
+          <p></p>
+          <a href="itms-services://?action=download-manifest&url=https://www.minecraft.goatsinlace.com/manifest.plist" download>Install iOS App</a>
+          <p></p>
+          <a href="https://www.minecraft.goatsinlace.com/minecraft-on-demand.apk" download>Install Android App</a>
+        </div> :
         <p className="Home-para">Please log in</p>
       }
     </>
