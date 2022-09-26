@@ -3,7 +3,9 @@
     "source.fixAll.eslint": true
   },
   "eslint.validate": [
-    "javascript"
+    "javascript",
+    "typescript",
+    "typescriptreact"
   ],
   "eslint.alwaysShowStatus": false
- }
+}
