@@ -7,5 +7,6 @@
     "typescript",
     "typescriptreact"
   ],
-  "eslint.alwaysShowStatus": false
+  "eslint.alwaysShowStatus": false,
+  "eslint.workingDirectories": [ "./web", "./AWS/lambda-code", "./AWS/cdk" ]
 }
