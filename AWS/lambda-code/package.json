@@ -42,9 +42,9 @@
     "typescript": "^4.7.4"
   },
   "dependencies": {
-    "@aws-sdk/client-ec2": "^3.142.0",
-    "@aws-sdk/client-eventbridge": "^3.142.0",
-    "@aws-sdk/client-secrets-manager": "^3.142.0",
+    "@aws-sdk/client-ec2": "^3.787.0",
+    "@aws-sdk/client-eventbridge": "^3.790.0",
+    "@aws-sdk/client-secrets-manager": "^3.787.0",
     "aws-jwt-verify": "^3.1.0",
     "dotenv": "^8.2.0",
     "jsonwebtoken": "^9.0.0",
